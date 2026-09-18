@@ -8,96 +8,85 @@
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/app.css">
 <style>
-  main{max-width:960px;margin:0 auto;width:100%;padding:22px 28px 3rem;display:grid;gap:1rem}
-  .card .body{padding:16px 20px}
-  .card p.help{margin:0 0 .8rem;color:var(--muted);font-size:.84rem}
-  .field{display:grid;grid-template-columns:220px 1fr;gap:.4rem .8rem;align-items:center;margin:.45rem 0}
-  .field label{font-weight:700;font-size:.84rem}
-  .field label small{display:block;color:var(--muted);font-weight:500;font-size:.72rem}
-  .field input,.field textarea,.field select{width:100%;font:inherit;font-family:var(--mono);font-size:.82rem;border:1px solid var(--line);border-radius:8px;padding:.5rem .6rem}
+  .grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start}
+  @media (max-width:1000px){.grid{grid-template-columns:1fr}}
+  .card .help{padding:12px 20px;font-size:12.5px;color:var(--muted);border-bottom:1px solid var(--line)}
+  .card .help code{font-family:var(--mono);background:var(--greybg);padding:1px 5px;border-radius:4px}
+  .body{padding:14px 20px 16px}
+  .field{display:grid;grid-template-columns:200px 1fr;gap:4px 14px;align-items:center;padding:8px 0;border-bottom:1px solid #F1F2EF}
+  .field:last-of-type{border-bottom:0}
+  .field label{font-weight:700;font-size:12.5px}
+  .field label small{display:block;color:var(--muted);font-weight:500;font-size:11px}
   .field textarea{min-height:90px}
   @media (max-width:640px){.field{grid-template-columns:1fr}}
-  .src{font-size:.68rem;font-weight:700;padding:.1rem .4rem;border-radius:999px;background:var(--greybg);color:var(--grey);margin-left:.4rem;text-transform:uppercase}
-  .src.settings{background:#e0e7ff;color:#3730a3}.src.env{background:var(--okbg);color:var(--ok)}
-  .foot{display:flex;gap:.5rem;align-items:center;padding-top:.6rem;border-top:1px solid var(--line);margin-top:.6rem;flex-wrap:wrap}
-  .result{font-size:.8rem;font-family:var(--mono)}.result.ok{color:var(--ok)}.result.bad{color:var(--bad)}
-  .status{margin-left:auto;font-size:.76rem}
-  .mode{display:flex;gap:.8rem;flex-wrap:wrap}
-  .mode label{flex:1;min-width:240px;border:1px solid var(--line);border-radius:10px;padding:.7rem .8rem;cursor:pointer;font-weight:500}
-  .mode label b{display:block;margin-bottom:.2rem}
-  .mode input{margin-right:.4rem}
-  .mode label.on{border-color:var(--blue);background:#eef2fd}
+  .src{font-size:9.5px;font-weight:800;padding:2px 6px;border-radius:999px;background:var(--greybg);color:var(--grey);margin-left:6px;text-transform:uppercase;letter-spacing:.04em}
+  .src.settings{background:#E0E7FF;color:#3730A3}.src.env{background:var(--okbg);color:var(--ok)}
+  .foot{display:flex;gap:8px;align-items:center;padding-top:12px;margin-top:8px;border-top:1px solid var(--line);flex-wrap:wrap}
+  .result{font-size:12px;font-family:var(--mono)}.result.ok{color:var(--ok)}.result.bad{color:var(--bad)}
+  .status{margin-left:auto}
+  .mode{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media (max-width:640px){.mode{grid-template-columns:1fr}}
+  .mode label{border:1px solid var(--line-strong);border-radius:10px;padding:12px 14px;cursor:pointer;font-weight:500;font-size:12.5px;color:var(--text);display:flex;gap:10px;align-items:flex-start}
+  .mode label b{display:block;color:var(--ink);margin-bottom:2px;font-size:13px}
+  .mode label.on{border-color:var(--blue);background:#EEF2FD}
+  .mode input{margin-top:3px}
 </style>
 </head>
 <body>
 <div class="banner" id="banner"></div>
-<main>
-  <div><h1 style="margin:0;font-size:1.25rem;font-weight:800">Settings</h1><p class="muted" style="margin:.2rem 0 0;font-size:.86rem">Connect the systems the agent talks to. Values are encrypted at rest and never shown again once saved. Blank = use the server's environment value (if any).</p></div>
+<main class="page">
+  <div class="page-head">
+    <div><h1>Settings</h1><div class="sub">Connect the systems the agent talks to. Values are encrypted at rest and never shown again once saved. Blank = use the server's environment value, if any.</div></div>
+  </div>
 
-  <section class="card" data-group="mode">
-    <h2>Mode</h2>
+  <section class="card">
+    <div class="head"><span>Mode</span></div>
     <div class="body">
       <div class="mode" id="modeBox">
-        <label id="m-demo"><input type="radio" name="app_mode" value="demo"><b>Demo</b>Seeded inbox of 30 fictional emails. Resets when idle. Safe to share publicly.</label>
-        <label id="m-live"><input type="radio" name="app_mode" value="live"><b>Live</b>Watches the Gmail inbox below every 30 s and processes real mail. No seeding, no reset. Keep this deployment private.</label>
+        <label id="m-demo"><input type="radio" name="app_mode" value="demo"><span><b>Demo</b>Seeded inbox of 30 fictional emails. Resets when idle. Safe to share publicly.</span></label>
+        <label id="m-live"><input type="radio" name="app_mode" value="live"><span><b>Live</b>Watches the Gmail inbox below every 30 s and processes real mail. No seeding, no reset. Keep this deployment private.</span></label>
       </div>
-      <div class="foot"><button class="btn primary" data-save="mode">Save mode</button><span class="result" id="r-mode"></span></div>
+      <div class="foot"><button class="btn primary" data-save="mode" type="button">Save mode</button><span class="result" id="r-mode"></span></div>
     </div>
   </section>
 
-  <section class="card" data-group="anthropic">
-    <h2>Claude (Anthropic) <span class="status" id="s-anthropic"></span></h2>
-    <div class="body">
-      <p class="help">Without a key the agent runs a keyword stand-in ("fake model"). With one, Claude reads, classifies, extracts, verifies, drafts and answers. Console: platform.claude.com → API keys. A full 30-email run costs a few cents.</p>
-      <div id="f-anthropic"></div>
-      <div class="foot"><button class="btn primary" data-save="anthropic">Save</button><button class="btn" data-test="anthropic">Test connection</button><span class="result" id="r-anthropic"></span></div>
-    </div>
-  </section>
+  <div class="grid">
+    <section class="card" data-group="anthropic">
+      <div class="head"><span>Claude (Anthropic)</span><span class="status" id="s-anthropic"></span></div>
+      <div class="help">Without a key the agent runs a keyword stand-in ("fake model"). With one, Claude reads, classifies, extracts, verifies, drafts and answers. Console: platform.claude.com → API keys. A full 30-email run costs a few cents.</div>
+      <div class="body"><div id="f-anthropic"></div><div class="foot"><button class="btn primary" data-save="anthropic" type="button">Save</button><button class="btn" data-test="anthropic" type="button">Test connection</button><span class="result" id="r-anthropic"></span></div></div>
+    </section>
 
-  <section class="card" data-group="gmail">
-    <h2>Gmail inbox <span class="status" id="s-gmail"></span></h2>
-    <div class="body">
-      <p class="help">Use a dedicated Gmail account. Turn on 2-Step Verification, then Google Account → Security → App passwords → create one for "Mail". Paste the 16-character password here. The agent reads via IMAP and moves processed mail to <code>ops-agent/processed</code>. In demo mode the seed emails are sent to this inbox; in live mode whatever arrives is processed.</p>
-      <div id="f-gmail"></div>
-      <div class="foot"><button class="btn primary" data-save="gmail">Save</button><button class="btn" data-test="gmail">Test connection</button><span class="result" id="r-gmail"></span></div>
-    </div>
-  </section>
+    <section class="card" data-group="gmail">
+      <div class="head"><span>Gmail inbox</span><span class="status" id="s-gmail"></span></div>
+      <div class="help">Use a dedicated Gmail account. Turn on 2-Step Verification, then Google Account → Security → App passwords → create one for "Mail" and paste the 16-character password. The agent reads via IMAP and moves processed mail to <code>ops-agent/processed</code>.</div>
+      <div class="body"><div id="f-gmail"></div><div class="foot"><button class="btn primary" data-save="gmail" type="button">Save</button><button class="btn" data-test="gmail" type="button">Test connection</button><span class="result" id="r-gmail"></span></div></div>
+    </section>
 
-  <section class="card" data-group="slack">
-    <h2>Slack <span class="status" id="s-slack"></span></h2>
-    <div class="body">
-      <p class="help">api.slack.com/apps → Create app → OAuth &amp; Permissions → bot scopes <code>chat:write</code>, <code>chat:write.public</code> → Install to workspace → copy the <code>xoxb-</code> token. Messages carry reference numbers only, never customer contact details.</p>
-      <div id="f-slack"></div>
-      <div class="foot"><button class="btn primary" data-save="slack">Save</button><button class="btn" data-test="slack">Test connection</button><span class="result" id="r-slack"></span></div>
-    </div>
-  </section>
+    <section class="card" data-group="slack">
+      <div class="head"><span>Slack</span><span class="status" id="s-slack"></span></div>
+      <div class="help">api.slack.com/apps → Create app → OAuth &amp; Permissions → bot scopes <code>chat:write</code>, <code>chat:write.public</code> → Install → copy the <code>xoxb-</code> token. Messages carry reference numbers only, never customer contact details.</div>
+      <div class="body"><div id="f-slack"></div><div class="foot"><button class="btn primary" data-save="slack" type="button">Save</button><button class="btn" data-test="slack" type="button">Test connection</button><span class="result" id="r-slack"></span></div></div>
+    </section>
 
-  <section class="card" data-group="hubspot">
-    <h2>HubSpot <span class="status" id="s-hubspot"></span></h2>
-    <div class="body">
-      <p class="help">Disputes become tickets on the customer's company. developers.hubspot.com → test account → Settings → Integrations → Private apps → scopes tickets read/write, companies read/write → token.</p>
-      <div id="f-hubspot"></div>
-      <div class="foot"><button class="btn primary" data-save="hubspot">Save</button><button class="btn" data-test="hubspot">Test connection</button><span class="result" id="r-hubspot"></span></div>
-    </div>
-  </section>
+    <section class="card" data-group="hubspot">
+      <div class="head"><span>HubSpot</span><span class="status" id="s-hubspot"></span></div>
+      <div class="help">Disputes become tickets on the customer's company. developers.hubspot.com → test account → Settings → Integrations → Private apps → scopes tickets read/write, companies read/write → token.</div>
+      <div class="body"><div id="f-hubspot"></div><div class="foot"><button class="btn primary" data-save="hubspot" type="button">Save</button><button class="btn" data-test="hubspot" type="button">Test connection</button><span class="result" id="r-hubspot"></span></div></div>
+    </section>
 
-  <section class="card" data-group="qbo">
-    <h2>QuickBooks Online <span class="status" id="s-qbo"></span></h2>
-    <div class="body">
-      <p class="help">Approved invoices become bills. developer.intuit.com → app → Keys &amp; credentials (Development) → OAuth 2.0 Playground: authorise the sandbox company, copy the refresh token and realm id.</p>
-      <div id="f-qbo"></div>
-      <div class="foot"><button class="btn primary" data-save="qbo">Save</button><button class="btn" data-test="qbo">Test connection</button><span class="result" id="r-qbo"></span></div>
-    </div>
-  </section>
+    <section class="card" data-group="qbo">
+      <div class="head"><span>QuickBooks Online</span><span class="status" id="s-qbo"></span></div>
+      <div class="help">Approved invoices become bills. developer.intuit.com → app → Keys &amp; credentials (Development) → OAuth 2.0 Playground: authorise the sandbox company, copy the refresh token and realm id.</div>
+      <div class="body"><div id="f-qbo"></div><div class="foot"><button class="btn primary" data-save="qbo" type="button">Save</button><button class="btn" data-test="qbo" type="button">Test connection</button><span class="result" id="r-qbo"></span></div></div>
+    </section>
 
-  <section class="card" data-group="rules_sheet">
-    <h2>Rules sheet (Google) <span class="status" id="s-rules_sheet"></span></h2>
-    <div class="body">
-      <p class="help">Optional. Thresholds live in the rules table by default; connect a Google Sheet (columns key, value, note — paste <code>seed/rules.csv</code>) so a non-developer can edit them. Share the sheet with the service-account email as Editor and paste the JSON key file here.</p>
-      <div id="f-rules_sheet"></div>
-      <div class="foot"><button class="btn primary" data-save="rules_sheet">Save</button><button class="btn" data-test="rules_sheet">Test connection</button><span class="result" id="r-rules_sheet"></span></div>
-    </div>
-  </section>
+    <section class="card" data-group="rules_sheet">
+      <div class="head"><span>Rules sheet (Google)</span><span class="status" id="s-rules_sheet"></span></div>
+      <div class="help">Optional. Thresholds live in the rules table by default; connect a Google Sheet (columns key, value, note — paste <code>seed/rules.csv</code>) so a non-developer can edit them. Share the sheet with the service-account email as Editor and paste the JSON key file here.</div>
+      <div class="body"><div id="f-rules_sheet"></div><div class="foot"><button class="btn primary" data-save="rules_sheet" type="button">Save</button><button class="btn" data-test="rules_sheet" type="button">Test connection</button><span class="result" id="r-rules_sheet"></span></div></div>
+    </section>
+  </div>
 </main>
 
 <script src="/static/nav.js" data-page="settings" data-title="Settings"></script>
@@ -110,8 +99,8 @@ function field(row) {
   const hint = row.set && row.secret ? `<small>saved ${esc(row.hint)}</small>` : '';
   const isJson = row.key === 'google_service_account_json';
   const input = isJson
-    ? `<textarea name="${row.key}" placeholder='{"type": "service_account", ...}'>${row.set ? '••••••••' : ''}</textarea>`
-    : `<input name="${row.key}" type="${row.secret ? 'password' : 'text'}" value="${esc(row.value)}" placeholder="${row.set ? '' : 'not set'}" autocomplete="off">`;
+    ? `<textarea class="field-input" name="${row.key}" placeholder='{"type": "service_account", ...}'>${row.set ? '••••••••' : ''}</textarea>`
+    : `<input class="field-input" name="${row.key}" type="${row.secret ? 'password' : 'text'}" value="${esc(row.value)}" placeholder="${row.set ? '' : 'not set'}" autocomplete="off">`;
   return `<div class="field"><label>${esc(row.label)}${src}${hint}</label>${input}</div>`;
 }
 
@@ -121,8 +110,8 @@ async function load() {
   for (const [g, rows] of Object.entries(v.groups)) {
     if (g === 'mode') continue;
     $('#f-' + g).innerHTML = rows.map(field).join('');
-    const on = v.configured[g === 'anthropic' ? 'anthropic' : g];
-    $('#s-' + g).innerHTML = on && !(g === 'anthropic' && st.llm === 'fake') ? '<span class="chip c-executed">connected</span>' : '<span class="chip c-ignore">not connected · simulated</span>';
+    const on = v.configured[g];
+    $('#s-' + g).innerHTML = on && !(g === 'anthropic' && st.llm === 'fake') ? '<span class="chip c-executed">connected</span>' : '<span class="chip c-ignore">simulated</span>';
   }
   document.querySelectorAll('input[name=app_mode]').forEach(r => { r.checked = r.value === v.mode; });
   $('#m-demo').classList.toggle('on', v.mode === 'demo'); $('#m-live').classList.toggle('on', v.mode === 'live');

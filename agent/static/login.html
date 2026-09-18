@@ -5,30 +5,33 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Ops Agent — sign in</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/app.css">
 <style>
-  :root{--blue:#1F4FD8;--orange:#E8620C;--ink:#14161a;--muted:#6b7280;--line:#e5e7eb;--bg:#f6f7f9}
-  body{margin:0;font-family:Manrope,system-ui,sans-serif;background:var(--bg);color:var(--ink);display:grid;place-items:center;min-height:100vh}
-  .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:2rem;width:min(92vw,380px);box-shadow:0 8px 30px rgba(20,22,26,.06)}
-  h1{margin:0 0 .25rem;font-size:1.25rem}
-  p{margin:0 0 1.25rem;color:var(--muted);font-size:.9rem}
-  input{width:100%;box-sizing:border-box;padding:.7rem .8rem;border:1px solid var(--line);border-radius:8px;font:inherit;font-family:"IBM Plex Mono",monospace}
-  button{margin-top:.8rem;width:100%;padding:.7rem;border:0;border-radius:8px;background:var(--blue);color:#fff;font:inherit;font-weight:700;cursor:pointer}
-  .err{color:#b00020;font-size:.85rem;margin-top:.6rem;min-height:1.2em}
-  small{display:block;margin-top:1rem;color:var(--muted)}
+  body{display:grid;place-items:center;min-height:100vh}
+  .card.login{width:min(92vw,400px);padding:28px 28px 24px;box-shadow:0 20px 60px rgba(21,23,26,.08)}
+  .brand{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:800;letter-spacing:-.02em;margin-bottom:18px}
+  h1{margin:0 0 4px;font-size:18px;font-weight:800}
+  p{margin:0 0 18px;color:var(--muted);font-size:13px}
+  label{display:block;font-size:12.5px;font-weight:700;margin-bottom:6px}
+  button.btn{width:100%;justify-content:center;margin-top:12px;height:40px}
+  .err{color:var(--bad);font-size:12.5px;margin-top:10px;min-height:1.2em;font-weight:600}
+  small{display:block;margin-top:16px;color:var(--muted);font-size:12px}
 </style>
 </head>
 <body>
-<form class="card" id="f">
-  <h1>Ops Agent — demo</h1>
-  <p>Shared demo password. Seeded data only — no real customers.</p>
-  <input id="pw" type="password" placeholder="password" autocomplete="current-password" autofocus>
-  <button type="submit">Enter</button>
+<form class="card login" id="f">
+  <div class="brand"><svg width="26" height="26" viewBox="0 0 28 28" fill="none" aria-hidden="true"><rect x="2" y="2" width="24" height="24" rx="7" fill="#15171A"/><path d="M8 14.5 12 18.5 20 9.5" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Ops Agent</div>
+  <h1>Sign in to the demo</h1>
+  <p>Shared demo password. Seeded, fictional data — no real customers, invoices or people.</p>
+  <label for="pw">Password</label>
+  <input class="field-input" id="pw" type="password" placeholder="password" autocomplete="current-password" autofocus>
+  <button class="btn primary" type="submit">Enter</button>
   <div class="err" id="err"></div>
   <small><a href="/inside">See how it works first →</a></small>
 </form>
 <script>
-document.getElementById('f').addEventListener('submit', async e=>{
+document.getElementById('f').addEventListener('submit', async e => {
   e.preventDefault();
   const r = await fetch('/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({password:document.getElementById('pw').value})});
   if(r.ok) location.href='/'; else document.getElementById('err').textContent = r.status===429 ? 'Too many attempts — wait a minute' : 'Wrong password';

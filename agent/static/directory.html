@@ -8,62 +8,79 @@
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/app.css">
 <style>
-  main{max-width:1160px;margin:0 auto;width:100%;padding:22px 28px 3rem;display:grid;gap:1rem}
-  .tabs{display:flex;gap:.4rem;align-items:center;flex-wrap:wrap}
-  .tabs button{font:inherit;font-weight:700;border:1px solid var(--line);background:#fff;border-radius:999px;padding:.35rem .9rem;cursor:pointer}
-  .tabs button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
-  .tabs .sp{margin-left:auto;display:flex;gap:.4rem;flex-wrap:wrap}
-  .pat{display:inline-block;font-family:var(--mono);font-size:.74rem;background:var(--greybg);border-radius:4px;padding:.05rem .35rem;margin:.1rem .2rem .1rem 0}
-  tr.click{cursor:pointer}tr.click:hover{background:#fafbfc}
-  .form{padding:.9rem;display:grid;grid-template-columns:1fr 1fr;gap:.6rem .9rem}
-  .form label{font-size:.8rem;font-weight:700;display:block}
-  .form label small{display:block;color:var(--muted);font-weight:500;font-size:.72rem}
-  .form input{width:100%;font:inherit;font-family:var(--mono);font-size:.82rem;border:1px solid var(--line);border-radius:8px;padding:.5rem .6rem;margin-top:.2rem}
-  .form .full{grid-column:1/-1}
-  .form .foot{grid-column:1/-1;display:flex;gap:.5rem;align-items:center;border-top:1px solid var(--line);padding-top:.6rem}
+  .kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .kpi{padding:12px 18px;display:flex;flex-direction:column;gap:3px;border-right:1px solid var(--line)}
+  .kpi:last-child{border-right:0}
+  .kpi small{font-size:11.5px;font-weight:600;color:var(--muted)}
+  .kpi b{font-family:var(--mono);font-size:22px;font-weight:600;line-height:1.15}
+  .kpi.hold b{color:var(--hold)}
+  @media (max-width:900px){.kpis{grid-template-columns:1fr 1fr}}
+  .tabs{display:flex;align-items:center;gap:2px;padding:4px 12px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .tabs button{padding:10px 12px;border:0;border-bottom:2px solid transparent;background:transparent;font:inherit;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;margin-bottom:-1px}
+  .tabs button.on{border-bottom-color:var(--ink);color:var(--ink);font-weight:800}
+  .tabs .tools{margin-left:auto;display:flex;gap:8px;align-items:center;padding:4px 0}
+  .search{display:flex;align-items:center;gap:8px;height:32px;padding:0 10px;border:1px solid var(--line-strong);border-radius:8px;color:var(--muted)}
+  .search input{width:150px;border:0;outline:none;font:inherit;font-size:12px;background:transparent;color:var(--ink)}
+  .pat{display:inline-block;font-family:var(--mono);font-size:11px;background:var(--greybg);border-radius:4px;padding:1px 6px;margin:1px 4px 1px 0;color:var(--text)}
+  tr.click{cursor:pointer}tr.click:hover{background:#FAFAF8}tr.sel{background:#EEF2FD}
+  td b{font-size:13px}
+  .form{padding:16px 20px;display:grid;grid-template-columns:1fr 1fr;gap:12px 20px}
+  .form label{font-size:12.5px;font-weight:700;display:block}
+  .form label small{display:block;color:var(--muted);font-weight:500;font-size:11.5px;margin-bottom:4px}
+  .form .foot{grid-column:1/-1;display:flex;gap:8px;align-items:center;border-top:1px solid var(--line);padding-top:12px;margin-top:4px}
   @media (max-width:700px){.form{grid-template-columns:1fr}}
-  .help{padding:.7rem .9rem;font-size:.84rem;color:var(--muted);border-bottom:1px solid var(--line)}
-  .result{font-size:.8rem;font-family:var(--mono)}.result.ok{color:var(--ok)}.result.bad{color:var(--bad)}
+  .help{padding:12px 20px;font-size:12.5px;color:var(--muted);border-bottom:1px solid var(--line)}
+  .help code{font-family:var(--mono);background:var(--greybg);padding:1px 5px;border-radius:4px}
+  .result{font-size:12px;font-family:var(--mono)}.result.ok{color:var(--ok)}.result.bad{color:var(--bad)}
+  .two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start}
+  @media (max-width:1000px){.two{grid-template-columns:1fr}}
+  .histsum{padding:12px 20px;font-size:12.5px;color:var(--text);border-bottom:1px solid var(--line)}
+  .histsum b{font-family:var(--mono)}
+  .empty{color:var(--muted);padding:22px;text-align:center}
 </style>
 </head>
 <body>
-<main>
-  <div><h1 style="margin:0;font-size:1.25rem;font-weight:800">Suppliers &amp; customers</h1><p class="muted" style="margin:.2rem 0 0;font-size:.86rem">The agent only acts on mail it can attribute. Anyone not listed here is held as "no match" — add them once and they are recognised from then on. Click a row to edit and see everything they have sent.</p></div>
-
-  <div class="tabs">
-    <button data-kind="supplier" class="on">Suppliers <span class="mono" id="nSup"></span></button>
-    <button data-kind="customer">Customers <span class="mono" id="nCus"></span></button>
-    <div class="sp">
-      <button class="btn small" id="importBtn">Import from QuickBooks / HubSpot</button>
-      <button class="btn small primary" id="newBtn">+ Add</button>
+<main class="page">
+  <div class="page-head">
+    <div><h1>Suppliers &amp; customers</h1><div class="sub">The agent only acts on mail it can attribute. Anyone not listed is held as "no match" — add them once and they are recognised from then on.</div></div>
+    <div class="actions">
+      <button class="btn" id="importBtn" type="button"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/></svg><span id="importLabel">Import from QuickBooks</span></button>
+      <button class="btn cta" id="newBtn" type="button">+ Add supplier</button>
     </div>
   </div>
   <span class="result" id="importResult"></span>
 
-  <section class="card" id="formCard" hidden>
-    <h2 id="formTitle">Add supplier</h2>
-    <div class="help">Give the <b>email address</b> they write from. A company address (<code>accounts@acmesupplies.example</code>) makes the agent recognise anyone at that company; a personal mailbox (<code>name@gmail.com</code>) is matched exactly. Names alone are never trusted.</div>
-    <form class="form" id="form">
-      <input type="hidden" id="f-id">
-      <label>Name<input id="f-name" required placeholder="Acme Supplies Ltd"></label>
-      <label>Email address(es)<small>comma separated · more than one is fine</small><input id="f-pat" required placeholder="accounts@acmesupplies.example"></label>
-      <label>Reference prefix<small>optional · the start of their invoice / account numbers, e.g. ACME for ACME-2031 — lets the agent recognise a document even from an unknown address</small><input id="f-prefix" placeholder="ACME"></label>
-      <label class="k-supplier">Expected invoice amount (PO)<small>optional · invoices more than ±5% away are held</small><input id="f-po" placeholder="1240.00"></label>
-      <label class="k-supplier">QuickBooks vendor id<small>optional · filled automatically on first bill</small><input id="f-qbo"></label>
-      <label class="k-customer">Contact email<small>optional</small><input id="f-email" placeholder="facilities@customer.example"></label>
-      <label class="k-customer">HubSpot company id<small>optional · filled automatically on first ticket</small><input id="f-hs"></label>
-      <div class="foot"><button class="btn primary" type="submit">Save</button><button class="btn" type="button" id="cancelBtn">Cancel</button><button class="btn" type="button" id="deleteBtn" style="margin-left:auto;color:var(--bad)" hidden>Delete</button><span class="result" id="formResult"></span></div>
-    </form>
-  </section>
+  <div class="kpis" id="kpis"></div>
 
-  <section class="card" id="histCard" hidden>
-    <h2 id="histTitle">History <span class="n" id="histN"></span></h2>
-    <div class="help" id="histSummary"></div>
-    <div style="overflow:auto"><table><thead><tr><th>Received</th><th>What</th><th>Reference</th><th>Amount</th><th>Status</th><th>Reason / where it went</th></tr></thead><tbody id="histRows"></tbody></table></div>
-  </section>
+  <div class="two" id="editRow" hidden>
+    <section class="card" id="formCard">
+      <div class="head"><span id="formTitle">Add supplier</span></div>
+      <div class="help">Give the <b>email address</b> they write from. A company address (<code>accounts@acmesupplies.example</code>) makes the agent recognise anyone at that company; a personal mailbox (<code>name@gmail.com</code>) is matched exactly. Names alone are never trusted.</div>
+      <form class="form" id="form">
+        <input type="hidden" id="f-id">
+        <label>Name<small>as it should appear in QuickBooks / HubSpot</small><input class="field-input" id="f-name" required placeholder="Acme Supplies Ltd"></label>
+        <label>Email address(es)<small>comma separated · more than one is fine</small><input class="field-input" id="f-pat" required placeholder="accounts@acmesupplies.example"></label>
+        <label>Reference prefix<small>optional · start of their invoice / account numbers, e.g. ACME for ACME-2031</small><input class="field-input" id="f-prefix" placeholder="ACME"></label>
+        <label class="k-supplier">Expected invoice amount (PO)<small>optional · invoices more than ±5% away are held</small><input class="field-input" id="f-po" placeholder="1240.00"></label>
+        <label class="k-supplier">QuickBooks vendor id<small>optional · filled automatically on first bill</small><input class="field-input" id="f-qbo"></label>
+        <label class="k-customer">Contact email<small>optional · who gets the reply</small><input class="field-input" id="f-email" placeholder="facilities@customer.example"></label>
+        <label class="k-customer">HubSpot company id<small>optional · filled automatically on first ticket</small><input class="field-input" id="f-hs"></label>
+        <div class="foot"><button class="btn primary" type="submit">Save</button><button class="btn" type="button" id="cancelBtn">Cancel</button><button class="btn" type="button" id="deleteBtn" style="margin-left:auto;color:var(--bad)" hidden>Delete</button><span class="result" id="formResult"></span></div>
+      </form>
+    </section>
+    <section class="card" id="histCard">
+      <div class="head"><span id="histTitle">History</span><span class="n" id="histN"></span></div>
+      <div class="histsum" id="histSummary"></div>
+      <div style="overflow:auto;max-height:420px"><table><thead><tr><th>Received</th><th>What</th><th>Reference</th><th>Amount</th><th>Status</th><th>Reason</th></tr></thead><tbody id="histRows"></tbody></table></div>
+    </section>
+  </div>
 
   <section class="card">
-    <h2 id="listTitle">Suppliers <span class="n" id="listN"></span></h2>
+    <div class="tabs" id="tabs">
+      <button data-kind="supplier" class="on" type="button">Suppliers <span class="mono" id="nSup"></span></button>
+      <button data-kind="customer" type="button">Customers <span class="mono" id="nCus"></span></button>
+      <div class="tools"><label class="search"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="search" id="q" placeholder="Search" aria-label="Search"></label></div>
+    </div>
     <div style="overflow:auto"><table><thead id="thead"></thead><tbody id="rows"></tbody></table></div>
   </section>
 </main>
@@ -71,45 +88,56 @@
 <script src="/static/nav.js" data-page="directory" data-title="Suppliers &amp; customers"></script>
 <script>
 const $ = s => document.querySelector(s);
-let kind = 'supplier', items = [];
+let kind = 'supplier', items = [], sel = null, counts = { supplier: null, customer: null };
+const typeLabel = t => ({ supplier_invoice: 'invoice', customer_dispute: 'complaint', remittance: 'payment advice', credit_note: 'credit note', ignore: 'ignored', unknown: 'unknown' })[t] || (t || '—');
 
 async function load() {
-  const [st, r] = await Promise.all([api('/status'), api('/api/parties?kind=' + kind)]);
-  renderNavStatus(st); items = r.items;
-  $('#listTitle').firstChild.textContent = kind === 'supplier' ? 'Suppliers ' : 'Customers ';
-  $('#listN').textContent = items.length + ' on file';
-  $('#nSup').textContent = kind === 'supplier' ? `(${items.length})` : $('#nSup').textContent;
-  $('#nCus').textContent = kind === 'customer' ? `(${items.length})` : $('#nCus').textContent;
+  const [st, r, other] = await Promise.all([api('/status'), api('/api/parties?kind=' + kind), api('/api/parties?kind=' + (kind === 'supplier' ? 'customer' : 'supplier'))]);
+  renderNavStatus(st); items = r.items; counts[kind] = items.length; counts[kind === 'supplier' ? 'customer' : 'supplier'] = other.items.length;
+  $('#nSup').textContent = `(${counts.supplier})`; $('#nCus').textContent = `(${counts.customer})`;
+  $('#newBtn').textContent = '+ Add ' + kind; $('#importLabel').textContent = kind === 'supplier' ? 'Import from QuickBooks' : 'Import from HubSpot';
+  const docs = items.reduce((a, p) => a + p.documents, 0), held = items.reduce((a, p) => a + p.held, 0), linked = items.filter(p => kind === 'supplier' ? p.qbo_vendor_id : p.hubspot_company_id).length;
+  $('#kpis').innerHTML = `
+    <div class="kpi"><small>${kind === 'supplier' ? 'Suppliers on file' : 'Customers on file'}</small><b>${items.length}</b></div>
+    <div class="kpi"><small>Documents attributed</small><b>${docs}</b></div>
+    <div class="kpi hold"><small>Waiting for you</small><b>${held}</b></div>
+    <div class="kpi"><small>${kind === 'supplier' ? 'Linked to QuickBooks' : 'Linked to HubSpot'}</small><b>${linked}<span class="muted" style="font-size:13px"> / ${items.length}</span></b></div>`;
   $('#thead').innerHTML = kind === 'supplier'
-    ? '<tr><th>Supplier</th><th>Recognised by</th><th>Expected amount</th><th>QuickBooks</th><th>Documents</th><th>Held</th></tr>'
-    : '<tr><th>Customer</th><th>Recognised by</th><th>Contact</th><th>HubSpot</th><th>Documents</th><th>Held</th></tr>';
-  $('#rows').innerHTML = items.map(p => `<tr class="click" data-id="${p.id}">
+    ? '<tr><th>Supplier</th><th>Recognised by</th><th>Expected amount</th><th>QuickBooks</th><th>Documents</th><th>Waiting</th></tr>'
+    : '<tr><th>Customer</th><th>Recognised by</th><th>Contact</th><th>HubSpot</th><th>Documents</th><th>Waiting</th></tr>';
+  renderRows();
+}
+
+function renderRows() {
+  const q = ($('#q').value || '').toLowerCase();
+  const rows = items.filter(p => !q || (p.name + ' ' + p.identifier_patterns.join(' ')).toLowerCase().includes(q));
+  $('#rows').innerHTML = rows.map(p => `<tr class="click ${sel === p.id ? 'sel' : ''}" data-id="${p.id}">
     <td><b>${esc(p.name)}</b></td>
     <td>${p.emails.map(x => `<span class="pat" title="${x.includes('@') ? 'this exact address' : 'anyone @' + x}">${esc(x.includes('@') ? x : '@' + x)}</span>`).join('')}${p.prefixes.map(x => `<span class="pat" title="reference prefix">${esc(x)}…</span>`).join('')}</td>
     ${kind === 'supplier' ? `<td class="mono">${p.po_amount != null ? money(p.po_amount) : '<span class="muted">—</span>'}</td><td class="mono">${p.qbo_vendor_id ? esc(p.qbo_vendor_id) : '<span class="muted">not linked</span>'}</td>`
                           : `<td class="mono">${esc(p.contact_email || '—')}</td><td class="mono">${p.hubspot_company_id ? esc(p.hubspot_company_id) : '<span class="muted">not linked</span>'}</td>`}
-    <td class="mono">${p.documents}</td><td>${p.held ? `<span class="chip c-held">${p.held}</span>` : '<span class="muted">—</span>'}</td></tr>`).join('') || `<tr><td colspan="6" class="muted">Nothing on file yet — press + Add or import.</td></tr>`;
+    <td class="mono">${p.documents}</td><td>${p.held ? `<span class="chip c-held">${p.held} held</span>` : '<span class="muted">—</span>'}</td></tr>`).join('') || `<tr><td colspan="6" class="empty">Nothing on file yet — press + Add or import.</td></tr>`;
 }
-
-document.querySelectorAll('.tabs [data-kind]').forEach(b => b.addEventListener('click', () => { document.querySelectorAll('.tabs [data-kind]').forEach(x => x.classList.remove('on')); b.classList.add('on'); kind = b.dataset.kind; hideForm(); load(); }));
+$('#q').addEventListener('input', renderRows);
+$('#tabs').addEventListener('click', e => { const b = e.target.closest('button[data-kind]'); if (!b) return; document.querySelectorAll('#tabs button[data-kind]').forEach(x => x.classList.remove('on')); b.classList.add('on'); kind = b.dataset.kind; hideForm(); load(); });
 
 function showForm(p) {
-  $('#formCard').hidden = false;
+  $('#editRow').hidden = false; sel = p ? p.id : null;
   document.querySelectorAll('.k-supplier').forEach(el => el.style.display = kind === 'supplier' ? '' : 'none');
   document.querySelectorAll('.k-customer').forEach(el => el.style.display = kind === 'customer' ? '' : 'none');
   $('#formTitle').textContent = (p ? 'Edit ' : 'Add ') + kind;
   $('#f-id').value = p ? p.id : ''; $('#f-name').value = p ? p.name : ''; $('#f-pat').value = p ? p.emails.join(', ') : ''; $('#f-prefix').value = p ? p.prefixes.map(x => x.replace(/-$/, '')).join(', ') : '';
   $('#f-po').value = p && p.po_amount != null ? p.po_amount : ''; $('#f-qbo').value = p ? (p.qbo_vendor_id || '') : '';
   $('#f-email').value = p ? (p.contact_email || '') : ''; $('#f-hs').value = p ? (p.hubspot_company_id || '') : '';
-  $('#deleteBtn').hidden = !p; $('#formResult').textContent = ''; $('#f-name').focus();
-  $('#formCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  $('#deleteBtn').hidden = !p; $('#formResult').textContent = '';
+  $('#histCard').hidden = !p;
+  if (p) showHistory(p); else $('#f-name').focus();
+  renderRows();
+  $('#editRow').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
-function hideForm() { $('#formCard').hidden = true; $('#histCard').hidden = true; }
-
-const typeLabel = t => ({ supplier_invoice: 'invoice', customer_dispute: 'complaint', remittance: 'payment advice', credit_note: 'credit note', ignore: 'ignored', unknown: 'unknown' })[t] || (t || '—');
+function hideForm() { $('#editRow').hidden = true; sel = null; renderRows(); }
 async function showHistory(p) {
-  $('#histCard').hidden = false;
-  $('#histTitle').firstChild.textContent = `${p.name} — history `;
+  $('#histTitle').textContent = p.name;
   let h; try { h = await api(`/api/parties/${kind}/${p.id}/documents`); } catch (e) { toast(e.message); return; }
   $('#histN').textContent = `${h.count} document${h.count === 1 ? '' : 's'}`;
   const st = Object.entries(h.by_status).map(([k, v]) => `${v} ${k}`).join(' · ');
@@ -117,15 +145,15 @@ async function showHistory(p) {
     ? `<b>${money(h.total_amount)}</b> ${kind === 'supplier' ? 'billed' : 'requested'} across ${h.count} document${h.count === 1 ? '' : 's'} · ${st} · first seen ${new Date(h.first_seen).toLocaleDateString('en-GB')}, last ${new Date(h.last_seen).toLocaleDateString('en-GB')}`
     : 'No documents from this party yet.';
   $('#histRows').innerHTML = h.documents.map(d => `<tr>
-    <td class="mono">${new Date(d.received_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</td>
-    <td>${typeLabel(d.doc_type)}<div class="muted" style="font-size:.74rem">${esc(d.subject)}</div></td>
+    <td class="mono muted">${new Date(d.received_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</td>
+    <td>${typeLabel(d.doc_type)}<div class="muted" style="font-size:11px">${esc(d.subject)}</div></td>
     <td class="mono">${esc(d.ref || d.filename)}</td><td class="mono">${d.amount ? money(d.amount) : '—'}</td>
     <td><span class="chip c-${d.status}">${d.status}</span>${d.human ? ' <span class="chip human">human</span>' : ''}</td>
-    <td><a href="/inbox#doc-${d.document_id}">${esc(d.reason || '')}</a>${d.external.length ? `<div class="mono muted" style="font-size:.72rem">${esc(d.external.join(' · '))}</div>` : ''}</td></tr>`).join('');
+    <td><a href="/inbox#doc-${d.document_id}">${esc(d.reason || '')}</a>${d.external.length ? `<div class="mono muted" style="font-size:11px">${esc(d.external.join(' · '))}</div>` : ''}</td></tr>`).join('') || '<tr><td colspan="6" class="empty">—</td></tr>';
 }
 $('#newBtn').addEventListener('click', () => showForm(null));
 $('#cancelBtn').addEventListener('click', hideForm);
-$('#rows').addEventListener('click', e => { const tr = e.target.closest('tr[data-id]'); if (tr) { const p = items.find(x => x.id === +tr.dataset.id); showForm(p); showHistory(p); } });
+$('#rows').addEventListener('click', e => { const tr = e.target.closest('tr[data-id]'); if (tr) showForm(items.find(x => x.id === +tr.dataset.id)); });
 
 $('#form').addEventListener('submit', async e => {
   e.preventDefault();
