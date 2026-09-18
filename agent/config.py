@@ -7,7 +7,7 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -23,6 +23,15 @@ class Settings(BaseSettings):
 
     # --- database -----------------------------------------------------------
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/ops_agent"
+
+    @field_validator("database_url")
+    @classmethod
+    def _psycopg_driver(cls, v: str) -> str:
+        """Hosted Postgres (Railway, Render, Neon) hands out postgres:// or postgresql:// URLs; we ship psycopg 3."""
+        for prefix in ("postgres://", "postgresql://"):
+            if v.startswith(prefix):
+                return "postgresql+psycopg://" + v[len(prefix):]
+        return v
 
     # --- Claude -------------------------------------------------------------
     anthropic_api_key: str = ""
