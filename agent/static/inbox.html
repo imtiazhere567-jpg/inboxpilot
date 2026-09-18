@@ -91,7 +91,7 @@ function renderTable() {
   rows = rows.slice().sort((a, b) => new Date(b.received_at) - new Date(a.received_at));
   $('#rows').innerHTML = rows.map(r => `<tr class="click ${sel === r.document_id ? 'sel' : ''}" data-id="${r.document_id}">
     <td class="mono muted">${r.seed_no ?? r.document_id}</td>
-    <td class="doc"><b>${esc(r.ref ? r.ref + ' ' + typeLabel(r.doc_type) : r.subject)}</b><small>${esc(r.filename === 'email-body.txt' ? 'email body' : r.filename)}</small></td>
+    <td class="doc"><b>${esc(r.subject)}</b><small>${esc([r.ref, typeLabel(r.doc_type), r.filename === 'email-body.txt' ? '' : r.filename].filter(Boolean).join(' · '))}</small></td>
     <td>${esc(r.party_name || r.from_addr)}</td>
     <td>${chip(r.status)}${r.injection ? ' <span class="chip inj">injection blocked</span>' : ''}${r.human_override ? ' <span class="chip human">human</span>' : ''}${r.simulated && !window.PRESENT ? ' <span class="chip sim">sim</span>' : ''}</td>
     <td class="mono">${r.amount ? money(r.amount) : '—'}</td>

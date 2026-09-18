@@ -36,17 +36,26 @@ class InvoiceExtraction(BaseModel):
     invoice_date: str | None = None
     due_date: str | None = None
     total: Decimal | None = None
+    subtotal: Decimal | None = Field(default=None, description="Net amount before VAT, if shown")
+    vat: Decimal | None = Field(default=None, description="VAT amount, if shown")
     currency: str | None = None
     supplier_name_on_document: str | None = None
+    payment_terms: str | None = Field(default=None, description="e.g. '30 days', 'due 2026-10-01', bank details line")
+    po_reference: str | None = Field(default=None, description="Customer PO / order reference quoted on the invoice, if any")
     line_items: list[LineItem] = Field(default_factory=list)
 
 
 class DisputeExtraction(BaseModel):
     order_ref: str | None = None
-    claim_summary: str
+    claim_summary: str = Field(description="One or two sentences: what went wrong, where and when")
     requested_refund_amount: Decimal | None = None
     currency: str | None = None
     customer_name_on_document: str | None = None
+    sender_name: str | None = Field(default=None, description="Person who wrote, from the signature")
+    sender_role: str | None = Field(default=None, description="Their job title, if signed")
+    site: str | None = Field(default=None, description="Site / building / location mentioned, if any")
+    incident_date: str | None = Field(default=None, description="When it happened, as written")
+    asks_for: str | None = Field(default=None, description="What they want: credit, refund, repair, re-clean, confirmation…")
     tone: Literal["neutral", "frustrated", "angry", "legal_threat"] = "neutral"
 
 

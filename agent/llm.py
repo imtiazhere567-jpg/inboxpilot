@@ -265,16 +265,34 @@ class FakeLLM:
         return self._call("classify", out, text)
 
     def extract_invoice(self, text: str) -> LLMCall:
+        from agent.schemas import LineItem
+
         m_no = _INVOICE_NO.search(text)
         m_tot = _TOTAL_PDF.search(text) or _TOTAL_CSV.search(text)
         dates = _DATE.findall(text)
+        items: list[LineItem] = []
+        # PDF rows: "<description> <qty> <unit> <net>"   CSV rows: "<description>,<qty>,<unit>,<net>"
+        for m in re.finditer(r"^(?P<d>[A-Za-z][^\n]{3,80}?)\s+(?P<q>\d{1,4})\s+(?P<u>[\d,]+\.\d{2})\s+(?P<n>[\d,]+\.\d{2})\s*$", text, re.M):
+            items.append(LineItem(description=m.group("d").strip(), quantity=Decimal(m.group("q")), unit_price=Decimal(m.group("u").replace(",", "")), amount=Decimal(m.group("n").replace(",", ""))))
+        if not items:
+            for m in re.finditer(r"^(?P<d>[A-Za-z][^,\n]{3,80}),(?P<q>\d{1,4}),(?P<u>[\d.]+),(?P<n>[\d.]+)\s*$", text, re.M):
+                items.append(LineItem(description=m.group("d").strip(), quantity=Decimal(m.group("q")), unit_price=Decimal(m.group("u")), amount=Decimal(m.group("n"))))
+        m_sub = re.search(r"Subtotal \(net\)\s*([\d,]+\.\d{2})|^subtotal_net,([\d.]+)", text, re.M | re.I)
+        m_vat = re.search(r"VAT @ 20%\s*([\d,]+\.\d{2})|^vat_20pct,([\d.]+)", text, re.M | re.I)
+        m_terms = re.search(r"Payment terms:\s*([^\n]+)", text)
+        m_po = re.search(r"\b(NF-PO-\d+|PO\s*#?\s*[A-Z0-9-]{4,})\b", text)
         out = InvoiceExtraction(
             invoice_number=m_no.group(1) if m_no else None,
             invoice_date=dates[0] if dates else None,
             due_date=dates[1] if len(dates) > 1 else None,
             total=Decimal(m_tot.group(1).replace(",", "")) if m_tot else None,
+            subtotal=Decimal((m_sub.group(1) or m_sub.group(2)).replace(",", "")) if m_sub else None,
+            vat=Decimal((m_vat.group(1) or m_vat.group(2)).replace(",", "")) if m_vat else None,
             currency="GBP" if m_tot else None,
             supplier_name_on_document=text.strip().splitlines()[0][:80] if text.strip() else None,
+            payment_terms=m_terms.group(1).strip()[:120] if m_terms else None,
+            po_reference=m_po.group(1) if m_po else None,
+            line_items=items,
         )
         return self._call("extract", out, text)
 
@@ -285,9 +303,36 @@ class FakeLLM:
         tone = "legal_threat" if re.search(r"\b(solicitor|lawyer|legal action|lawsuit|court|ombudsman)\b", low) else \
                "angry" if any(k in low for k in ("third time", "nearly fell", "unacceptable")) else \
                "frustrated" if any(k in low for k in ("second time", "again", "complained")) else "neutral"
-        first_line = next((ln.strip() for ln in text.splitlines() if ln.strip()), "")[:120]
-        out = DisputeExtraction(order_ref=m_ref.group(1) if m_ref else None, claim_summary=first_line,
-                                requested_refund_amount=amounts[0] if amounts else None, currency="GBP" if amounts else None, tone=tone)
+        lines = [ln.strip() for ln in text.splitlines()]
+        body_lines = [ln for ln in lines if ln and not ln.lower().startswith(("subject:", "from:", "hi", "hello", "good morning", "morning", "dear"))]
+        # the complaint itself: first body sentence(s) up to ~220 chars
+        para = " ".join(body_lines[:3])
+        sentences = re.split(r"(?<=[.!?])\s+", para)
+        summary = " ".join(sentences[:2])[:220] or (body_lines[0][:220] if body_lines else "")
+        # signature: the block after the last sign-off ("Kind regards" / "Thanks" / a blank line); first line that
+        # looks like a person's name (2-4 capitalised words), the next short line is their role
+        sender_name = sender_role = None
+        nonempty = [ln for ln in lines if ln]
+        sig_start = 0
+        for i, ln in enumerate(nonempty):
+            if re.match(r"^(kind regards|regards|thanks|many thanks|cheers|best|yours sincerely)[,!.]?$", ln, re.I):
+                sig_start = i + 1
+        sig = nonempty[sig_start:][-4:]
+        for i, ln in enumerate(sig):
+            if re.fullmatch(r"[A-Z][a-z'\-]+(?: [A-Z][a-z'\-]+){1,3}", ln.strip()):
+                sender_name = ln.strip()
+                nxt = sig[i + 1].strip() if i + 1 < len(sig) else ""
+                if nxt and "@" not in nxt and len(nxt) < 70 and not re.search(r"\d{4,}", nxt):
+                    sender_role = nxt.split(",")[0].strip()
+                break
+        m_site = re.search(r"\b(?:at|in) the ([A-Z][\w' -]{3,40}?(?: home| depot| store| site| office| clinic| room| showroom))\b", text)
+        m_when = re.search(r"\b(?:on|since)\s+((?:Mon|Tues|Wednes|Thurs|Fri|Satur|Sun)day(?: \d{1,2} [A-Z][a-z]+)?|\d{1,2} [A-Z][a-z]+(?: \d{4})?|this (?:week|month)|yesterday|last night)\b", text)
+        asks = "credit" if re.search(r"\bcredit\b", low) else "refund" if "refund" in low else "compensation / repair cost" if re.search(r"\b(claim|repair|cover)\b", low) else \
+               "a re-clean / catch-up visit" if re.search(r"\b(catch-up|re-?clean|arrange)\b", low) else "confirmation of corrective action" if "confirm" in low else "a response"
+        out = DisputeExtraction(order_ref=m_ref.group(1) if m_ref else None, claim_summary=summary,
+                                requested_refund_amount=amounts[0] if amounts else None, currency="GBP" if amounts else None,
+                                sender_name=sender_name, sender_role=sender_role, site=m_site.group(1) if m_site else None,
+                                incident_date=m_when.group(1) if m_when else None, asks_for=asks, tone=tone)
         return self._call("extract", out, text)
 
     def extract_remittance(self, text: str) -> LLMCall:
@@ -302,7 +347,7 @@ class FakeLLM:
         norm = source_text.replace(",", "").lower()
         missing = []
         for k, v in extracted.items():
-            if v in (None, "", [], {}) or isinstance(v, (list, dict)) or k in ("tone", "currency", "claim_summary", "supplier_name_on_document", "payer_name_on_document", "customer_name_on_document"):
+            if v in (None, "", [], {}) or isinstance(v, (list, dict)) or k in ("tone", "currency", "claim_summary", "supplier_name_on_document", "payer_name_on_document", "customer_name_on_document", "sender_name", "sender_role", "site", "incident_date", "asks_for", "payment_terms", "po_reference"):
                 continue
             if str(v).replace(",", "").lower() not in norm:
                 missing.append(k)

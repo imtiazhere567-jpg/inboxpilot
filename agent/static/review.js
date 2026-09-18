@@ -75,7 +75,7 @@
           ${canReject ? `<button class="btn" type="button" data-decide="reject" data-id="${it.document_id}">Reject</button>` : ''}
           ${canRetry ? `<button class="btn cta" type="button" data-retry="${it.document_id}">Retry failed action</button>` : ''}
         </div>
-        ${extractedRows ? `<div class="box"><h4>Extracted</h4><dl class="kv" style="margin:0">${extractedRows}</dl></div>` : ''}
+        ${detailBox(it, ex) || (extractedRows ? `<div class="box"><h4>Extracted</h4><dl class="kv" style="margin:0">${extractedRows}</dl></div>` : '')}
         ${vr ? `<div class="box"><h4>Verifier — second model</h4><div class="verify ${vr.all_fields_present?'ok':'bad'}">${vr.all_fields_present ? '✓ every extracted value is literally present in the source' : '✗ unsupported: ' + esc((vr.missing_or_unsupported||[]).join(', '))}</div>${vr.notes ? `<div class="muted" style="margin-top:3px">${esc(vr.notes)}</div>` : ''}</div>` : ''}
         <div class="box"><h4>Source — what the agent read</h4><pre>${snippet}</pre></div>
         ${it.doc_type === 'customer_dispute' && it.draft_reply ? replyBox(it) : ''}
@@ -85,6 +85,41 @@
     },
   };
 
+  function detailBox(it, ex) {
+    if (!ex || !Object.keys(ex).length) return '';
+    if (it.doc_type === 'supplier_invoice') {
+      const items = (ex.line_items || []).filter(li => li && li.description);
+      const rows = items.map(li => `<tr><td>${esc(li.description)}</td><td class="mono" style="text-align:right">${li.quantity ?? ''}</td><td class="mono" style="text-align:right">${li.unit_price != null ? money(li.unit_price) : ''}</td><td class="mono" style="text-align:right">${li.amount != null ? money(li.amount) : ''}</td></tr>`).join('');
+      const tot = (label, v, bold) => v == null ? '' : `<tr><td colspan="3" style="text-align:right;${bold ? 'font-weight:800' : 'color:var(--muted)'}">${label}</td><td class="mono" style="text-align:right;${bold ? 'font-weight:700' : ''}">${money(v)}</td></tr>`;
+      return `<div class="box"><h4>What was billed</h4>
+        <dl class="kv" style="margin:0 0 8px">
+          <dt>invoice</dt><dd>${esc(ex.invoice_number || '—')}${ex.po_reference ? ` <span class="muted">· PO ${esc(ex.po_reference)}</span>` : ''}</dd>
+          <dt>dated / due</dt><dd>${esc(ex.invoice_date || '—')} / ${esc(ex.due_date || '—')}</dd>
+          ${ex.supplier_name_on_document ? `<dt>issued by</dt><dd>${esc(ex.supplier_name_on_document)}</dd>` : ''}
+          ${ex.payment_terms ? `<dt>terms</dt><dd>${esc(ex.payment_terms)}</dd>` : ''}
+        </dl>
+        ${rows ? `<table style="font-size:12px"><thead><tr><th>Item</th><th style="text-align:right">Qty</th><th style="text-align:right">Unit</th><th style="text-align:right">Net</th></tr></thead><tbody>${rows}${tot('Subtotal (net)', ex.subtotal)}${tot('VAT', ex.vat)}${tot('Total due', ex.total, true)}</tbody></table>` : `<div class="muted">No line items could be read. Total due <b class="mono">${money(ex.total)}</b>.</div>`}
+      </div>`;
+    }
+    if (it.doc_type === 'customer_dispute') {
+      return `<div class="box"><h4>Complaint details</h4>
+        <div style="font-size:13px;margin-bottom:8px">${esc(ex.claim_summary || '—')}</div>
+        <dl class="kv" style="margin:0">
+          <dt>they want</dt><dd>${esc(ex.asks_for || '—')}${ex.requested_refund_amount ? ` · <b>${money(ex.requested_refund_amount)}</b>` : ''}</dd>
+          ${ex.order_ref ? `<dt>account / ref</dt><dd>${esc(ex.order_ref)}</dd>` : ''}
+          ${ex.site ? `<dt>site</dt><dd>${esc(ex.site)}</dd>` : ''}
+          ${ex.incident_date ? `<dt>when</dt><dd>${esc(ex.incident_date)}</dd>` : ''}
+          ${ex.sender_name ? `<dt>from</dt><dd>${esc(ex.sender_name)}${ex.sender_role ? ` <span class="muted">· ${esc(ex.sender_role)}</span>` : ''}</dd>` : ''}
+          <dt>tone</dt><dd>${esc((ex.tone || 'neutral').replace('_', ' '))}${ex.tone === 'legal_threat' ? ' <span class="chip c-held">legal</span>' : ''}</dd>
+        </dl></div>`;
+    }
+    if (it.doc_type === 'remittance') {
+      return `<div class="box"><h4>Payment details</h4><dl class="kv" style="margin:0">
+        <dt>amount</dt><dd><b>${money(ex.amount)}</b></dd>${ex.payment_date ? `<dt>paid on</dt><dd>${esc(ex.payment_date)}</dd>` : ''}
+        ${(ex.invoice_refs || []).length ? `<dt>settles</dt><dd>${esc(ex.invoice_refs.join(', '))}</dd>` : ''}${ex.payer_name_on_document ? `<dt>payer</dt><dd>${esc(ex.payer_name_on_document)}</dd>` : ''}</dl></div>`;
+    }
+    return '';
+  }
   function splitDraft(draft) { const m = /^Subject:\s*(.*)\n\n([\s\S]*)$/.exec(draft || ''); return m ? { subject: m[1], body: m[2] } : { subject: 'Re: your message', body: draft || '' }; }
   function replyBox(it) {
     const d = splitDraft(it.draft_reply), sent = it.actions.find(a => a.system === 'email' && a.status === 'ok');
