@@ -1,3 +1,13 @@
+---
+title: InboxPilot
+emoji: 📬
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # Ops Agent — invoices & disputes
 
 A live, clickable portfolio demo of an AI agent working inside business operations: it reads a shared inbox of
