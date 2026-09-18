@@ -68,6 +68,7 @@
           <dt>AI cost</dt><dd>$${(it.cost_usd||0).toFixed(4)}</dd>
         </dl>
         ${noMatch ? `<div class="box addparty" id="rvAddParty"><h4>Not on file</h4><div class="muted" style="margin-bottom:8px">This sender is not in the directory. Add them once and this item is processed again automatically.</div><button class="btn small primary" type="button" data-suggest="${it.document_id}">Add as ${/customer/.test(it.reason) ? 'customer' : 'supplier'} →</button></div>` : ''}
+        ${canDecide ? nextStep(it) : ''}
         ${(canDecide || canRetry) ? `<textarea id="rvNote" placeholder="${canRetry ? 'Optional note' : 'Required: one line on why (recorded in the ledger)'}"></textarea>` : ''}
         <div class="actions">
           ${canDecide ? `<button class="btn primary" type="button" data-decide="approve" data-id="${it.document_id}">Approve → execute</button>` : ''}
@@ -84,6 +85,15 @@
     },
   };
 
+  function nextStep(it) {
+    const ex = it.extracted || {}, party = it.party_name || 'the sender';
+    let approve;
+    if (it.doc_type === 'supplier_invoice') approve = `a bill for <b>${money(ex.total)}</b> against <b>${esc(party)}</b> is created in QuickBooks (ref ${esc(ex.invoice_number || '—')}) and a line is posted to Slack. No payment is made — the bill sits in QuickBooks for the normal payment run.`;
+    else if (it.doc_type === 'customer_dispute') approve = `a ticket is opened in HubSpot on <b>${esc(party)}</b> with the complaint summary${ex.requested_refund_amount ? ` and the <b>${money(ex.requested_refund_amount)}</b> request` : ''}, the draft reply is saved on the ticket (not sent), and Slack is notified. No refund is paid — a person decides that from the ticket.`;
+    else if (it.doc_type === 'remittance') approve = `the payment notice is recorded and Slack is told "payment received". Nothing else happens.`;
+    else approve = `the item is recorded as approved and Slack is notified.`;
+    return `<div class="box"><h4>What happens next</h4><div><b>Approve</b> → ${approve}</div><div style="margin-top:6px"><b>Reject</b> → nothing is posted anywhere; your note and the decision are kept in the ledger.</div></div>`;
+  }
   function highlight(text, ex) {
     const vals = Object.values(ex || {}).filter(v => typeof v === 'string' || typeof v === 'number').map(String).filter(v => v.length > 2).sort((a,b)=>b.length-a.length);
     for (const v of vals) {
@@ -96,9 +106,17 @@
   async function decide(id, action) {
     const note = ($('#rvNote') ? $('#rvNote').value.trim() : '');
     if (note.length < 3) { toast('Please write a short note first'); $('#rvNote').focus(); return; }
-    try { const r = await api(`/${action}/${id}`, {method:'POST', body: JSON.stringify({note, by:'demo'})}); toast(`${action}d → ${r.status}`); await changed(); } catch (e) { toast(e.message); }
+    try {
+      const r = await api(`/${action}/${id}`, {method:'POST', body: JSON.stringify({note, by:'demo'})});
+      if (action === 'approve') {
+        const done = (r.actions || []).filter(a => a.status === 'ok').map(a => actionLabel(a));
+        const failed = (r.actions || []).filter(a => a.status !== 'ok').map(a => a.system);
+        toast(r.status === 'executed' ? `Approved — ${done.join(', ')}` : `Approved but ${failed.join(', ')} failed — retry from the panel`, 4500);
+      } else toast('Rejected — nothing posted, decision recorded', 3500);
+      await changed();
+    } catch (e) { toast(e.message); }
   }
-  async function retry(id) { try { const r = await api(`/retry/${id}`, {method:'POST'}); toast('retry → ' + r.status); await changed(); } catch (e) { toast(e.message); } }
+  async function retry(id) { try { const r = await api(`/retry/${id}`, {method:'POST'}); const done = (r.actions || []).filter(a => a.status === 'ok').map(a => actionLabel(a)); toast(r.status === 'executed' ? `Done — ${done.join(', ')}` : 'Still failing — the system is not reachable', 4500); await changed(); } catch (e) { toast(e.message); } }
   async function suggestParty(id) {
     const box = document.getElementById('rvAddParty');
     let sg; try { sg = await api('/api/parties/suggest/' + id); } catch (e) { toast(e.message); return; }

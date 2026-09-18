@@ -115,7 +115,7 @@ def dashboard(session: Session, tz_offset_minutes: int = 0) -> dict[str, Any]:
                 "party": names.get((d.party_kind, d.party_id)) if d.party_id else None, "doc_type": d.doc_type,
                 "amount": ex.get("total") or ex.get("requested_refund_amount"), "received_at": d.email.received_at,
             })
-    attention.sort(key=lambda a: (a["status"] != "failed", a["received_at"]))
+    attention.sort(key=lambda a: (a["status"] != "failed", -a["received_at"].timestamp()))  # failed first, then newest
 
     feed = []
     for d in docs:
@@ -145,7 +145,7 @@ def dashboard(session: Session, tz_offset_minutes: int = 0) -> dict[str, Any]:
         "days": days,
         "top_suppliers": top_suppliers,
         "top_customers": top_customers,
-        "attention": attention[:12],
+        "attention": attention[:20],
         "attention_total": len(attention),
         "feed": feed[:25],
         "snapshot_at": now_utc.isoformat(),
