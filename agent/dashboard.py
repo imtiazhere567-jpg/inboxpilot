@@ -72,6 +72,8 @@ def dashboard(session: Session, tz_offset_minutes: int = 0) -> dict[str, Any]:
             "held": sum(1 for d in dd if d.status in ("held", "rejected", "failed") or _human_approved(d)),
             "ignored": sum(1 for d in dd if d.status == "ignore"),
             "invoices_total": float(sum(_dec((d.extracted or {}).get("total")) for d in dd if d.doc_type == "supplier_invoice" and _is_money_doc(d))),
+            "handled_total": float(sum(_dec((d.extracted or {}).get("total")) for d in dd if d.doc_type == "supplier_invoice" and d.status in ("executed", "auto_approved", "approved") and not _human_approved(d))),
+            "waiting_total": float(sum(_dec((d.extracted or {}).get("total")) for d in dd if d.doc_type == "supplier_invoice" and (d.status in ("held", "failed") or _human_approved(d)))),
         })
 
     sup: dict[str, dict] = {}

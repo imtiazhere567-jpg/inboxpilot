@@ -8,151 +8,224 @@
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/app.css">
 <style>
-  main{padding:1rem 1.2rem 2rem;display:grid;gap:1rem}
-  .row{display:grid;gap:1rem}
-  .kpis{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
-  .kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.8rem .9rem}
-  .kpi b{display:block;font-family:var(--mono);font-size:1.5rem;font-weight:600;line-height:1.2}
-  .kpi small{color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.05em}
-  .kpi .sub{color:var(--muted);font-size:.76rem;margin-top:.15rem}
-  .kpi.held b{color:var(--hold)}.kpi.failed b{color:var(--bad)}.kpi.ok b{color:var(--ok)}
-  .two{grid-template-columns:1.3fr 1fr}.two-eq{grid-template-columns:1fr 1fr}
-  @media (max-width:900px){.two,.two-eq{grid-template-columns:1fr}}
-  .pad{padding:.9rem}
-  .legend{display:flex;gap:1rem;font-size:.75rem;color:var(--muted);padding:0 .9rem .6rem}
-  .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:.3rem;vertical-align:-1px}
-  .list{list-style:none;margin:0;padding:0;max-height:360px;overflow:auto}
-  .list li{padding:.55rem .9rem;border-bottom:1px solid var(--line);display:flex;gap:.6rem;align-items:flex-start}
-  .list li:last-child{border-bottom:0}
-  .list .t{flex:1;min-width:0}.list .t b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .list .t span{color:var(--muted);font-size:.78rem}
-  .feed li{font-size:.8rem}.feed .ic{font-family:var(--mono);width:1.3em;text-align:center;color:var(--muted)}
-  .feed .k-held .ic{color:var(--hold)}.feed .k-auto_approved .ic,.feed .k-action .ic{color:var(--ok)}.feed .k-failed .ic{color:var(--bad)}
-  .feed time{font-family:var(--mono);font-size:.72rem;color:var(--muted);white-space:nowrap}
-  /* ask */
-  .chat{display:flex;flex-direction:column;height:420px}
-  .msgs{flex:1;overflow:auto;padding:.8rem .9rem;display:flex;flex-direction:column;gap:.6rem}
-  .msg{max-width:92%;padding:.55rem .75rem;border-radius:10px;white-space:pre-wrap;font-size:.86rem;line-height:1.45}
+  .kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .kpi{padding:16px 20px;display:flex;flex-direction:column;gap:5px;border-right:1px solid var(--line)}
+  .kpi:last-child{border-right:0}
+  .kpi small{font-size:12px;font-weight:600;color:var(--muted)}
+  .kpi b{font-family:var(--mono);font-size:28px;font-weight:600;line-height:1.1}
+  .kpi .d{font-size:12px;color:var(--muted)}.kpi .d em{font-style:normal;font-weight:700;color:var(--ok)}.kpi .d em.neg{color:var(--bad)}
+  .kpi.hold b{color:var(--hold)}.kpi.bad b{color:var(--bad)}
+  @media (max-width:900px){.kpis{grid-template-columns:1fr 1fr}.kpi:nth-child(2){border-right:0}.kpi:nth-child(-n+2){border-bottom:1px solid var(--line)}}
+  .two{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:20px}
+  @media (max-width:1100px){.two{grid-template-columns:1fr}}
+  .chartcard{padding:18px 20px 14px;display:flex;flex-direction:column;gap:10px}
+  .chartcard .top{display:flex;align-items:center;gap:12px}
+  .chartcard .top b{font-size:14px;font-weight:800}
+  .legend{margin-left:auto;display:flex;gap:14px;font-size:11px;color:var(--muted)}
+  .legend i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px;vertical-align:0}
+  .chartbody{display:flex;align-items:flex-end;gap:22px}
+  .bignum{width:200px;flex-shrink:0;display:flex;flex-direction:column;gap:4px}
+  .bignum b{font-family:var(--mono);font-size:32px;font-weight:600;letter-spacing:-.02em;line-height:1.1}
+  .bignum b span{color:var(--faint)}
+  .bignum small{font-size:12px;color:var(--muted)}.bignum small em{font-style:normal;font-weight:700;color:var(--ok)}
+  .bars{flex:1;min-width:0}
+  .att{display:flex;flex-direction:column;overflow:hidden}
+  .att a.row{display:flex;align-items:center;gap:12px;padding:10px 18px;border-bottom:1px solid #F1F2EF;text-decoration:none;color:var(--ink)}
+  .att a.row:last-child{border-bottom:0}.att a.row:hover{background:#FAFAF8}
+  .att .ic{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--holdbg);color:var(--hold)}
+  .att .ic.inj{background:var(--ink);color:#fff}.att .ic.fail{background:var(--badbg);color:var(--bad)}
+  .att .t{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+  .att .t b{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.att .t span{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .att .amt{font-family:var(--mono);font-size:12px;font-weight:600}
+  .stages{display:flex;flex-direction:column;gap:10px}
+  .stages > b{font-size:14px;font-weight:800}
+  .stagegrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+  @media (max-width:900px){.stagegrid{grid-template-columns:1fr 1fr}}
+  .stage{display:flex;flex-direction:column;gap:6px}
+  .stage small{font-size:12px;font-weight:700;color:var(--ink)}
+  .stage .v{display:flex;align-items:baseline;gap:8px}.stage .v b{font-family:var(--mono);font-size:15px;font-weight:600}.stage .v span{font-size:11px;color:var(--muted)}
+  .stage .bar{height:8px;border-radius:999px;background:#F0F1EE;overflow:hidden}.stage .bar i{display:block;height:100%;border-radius:999px}
+  .tablecard{display:flex;flex-direction:column;overflow:hidden}
+  .tabs{display:flex;align-items:center;gap:2px;padding:4px 12px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .tabs button{padding:10px 12px;border:0;border-bottom:2px solid transparent;background:transparent;font:inherit;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;margin-bottom:-1px}
+  .tabs button.on{border-bottom-color:var(--ink);color:var(--ink);font-weight:800}
+  .tabs .tools{margin-left:auto;display:flex;gap:8px;align-items:center;padding:4px 0}
+  .search{display:flex;align-items:center;gap:8px;height:32px;padding:0 10px;border:1px solid var(--line-strong);border-radius:8px;color:var(--muted)}
+  .search input{width:150px;border:0;outline:none;font:inherit;font-size:12px;background:transparent;color:var(--ink)}
+  .tablecard td.why{color:var(--text)}
+  .tablecard tr.click{cursor:pointer}.tablecard tr.click:hover{background:#FAFAF8}
+  .tablecard .doc b{display:block}.tablecard .doc small{font-family:var(--mono);font-size:11px;color:var(--muted)}
+  /* ask drawer */
+  .drawer{position:fixed;top:0;right:0;height:100vh;width:min(440px,100vw);background:#fff;border-left:1px solid var(--line);box-shadow:-12px 0 40px rgba(21,23,26,.10);transform:translateX(100%);transition:transform .2s;z-index:30;display:flex;flex-direction:column}
+  .drawer.open{transform:none}
+  .drawer .head{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+  .drawer .head b{font-size:14px;font-weight:800}
+  .msgs{flex:1;overflow:auto;padding:14px 18px;display:flex;flex-direction:column;gap:8px}
+  .msg{max-width:92%;padding:9px 12px;border-radius:10px;white-space:pre-wrap;font-size:13px;line-height:1.45}
   .msg.u{align-self:flex-end;background:var(--blue);color:#fff}.msg.a{align-self:flex-start;background:var(--greybg)}
-  .msg.a small{display:block;color:var(--muted);font-size:.7rem;margin-top:.3rem;font-family:var(--mono)}
-  .askrow{display:flex;gap:.5rem;padding:.6rem .9rem;border-top:1px solid var(--line)}
-  .askrow input{flex:1;font:inherit;border:1px solid var(--line);border-radius:8px;padding:.55rem .7rem}
-  .sugg{display:flex;gap:.4rem;flex-wrap:wrap;padding:0 .9rem .6rem}
-  .sugg button{font:inherit;font-size:.74rem;border:1px solid var(--line);background:#fff;border-radius:999px;padding:.2rem .6rem;cursor:pointer;color:var(--grey)}
-  .empty{color:var(--muted);padding:1.4rem;text-align:center}
+  .msg.a small{display:block;color:var(--muted);font-size:10.5px;margin-top:4px;font-family:var(--mono)}
+  .sugg{display:flex;gap:6px;flex-wrap:wrap;padding:0 18px 10px}
+  .sugg button{font:inherit;font-size:11.5px;border:1px solid var(--line-strong);background:#fff;border-radius:999px;padding:4px 10px;cursor:pointer;color:var(--text)}
+  .askrow{display:flex;gap:8px;padding:12px 18px;border-top:1px solid var(--line)}
+  .askrow input{flex:1;font:inherit;border:1px solid var(--line-strong);border-radius:8px;padding:9px 11px}
+  .empty{color:var(--muted);padding:22px;text-align:center}
 </style>
 </head>
 <body>
 <div class="banner" id="banner"></div>
-<main>
-  <div style="display:flex;align-items:baseline;gap:1rem;flex-wrap:wrap">
-    <h1 style="margin:0;font-size:1.25rem;font-weight:800">Today <span class="muted" id="todayDate" style="font-weight:600;font-size:.9rem"></span></h1>
-    <span class="muted" id="snap"></span>
-    <span style="margin-left:auto;display:flex;gap:.5rem"><a class="btn small" href="/inbox">Open inbox →</a><button class="btn small warn" id="resetBtn">Reset demo</button></span>
-  </div>
-  <div class="row kpis" id="kpis"></div>
-
-  <div class="row two">
-    <section class="card">
-      <h2>Last 7 days <span class="n" id="weekN"></span></h2>
-      <div class="pad" id="chart"></div>
-      <div class="legend"><span><i style="background:#0a7a2f"></i>handled by agent</span><span><i style="background:#E8620C"></i>needed a person</span><span><i style="background:#cbd5e1"></i>ignored</span></div>
-    </section>
-    <section class="card chat">
-      <h2>Ask the agent <span class="n" id="askModel"></span></h2>
-      <div class="msgs" id="msgs"><div class="msg a">Ask me about the inbox — counts, amounts, what's held and why, a supplier's total, today's activity.</div></div>
-      <div class="sugg" id="sugg"></div>
-      <form class="askrow" id="askForm"><input id="q" placeholder="e.g. how many invoices came in today and what is their total?" autocomplete="off"><button class="btn primary" type="submit">Ask</button></form>
-    </section>
+<main class="page">
+  <div class="page-head">
+    <div><h1 id="pageTitle">Today's inbox</h1><div class="sub" id="sub"></div></div>
+    <div class="actions">
+      <button class="btn" id="resetBtn" type="button">Reset demo</button>
+      <a class="btn" href="/inbox">Open inbox</a>
+      <button class="btn cta" id="askBtn" type="button"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 21l1.9-5.4A8 8 0 1 1 21 12z"/></svg>Ask the agent</button>
+    </div>
   </div>
 
-  <div class="row two-eq">
-    <section class="card">
-      <h2>Needs your attention <span class="n" id="attN"></span></h2>
-      <ul class="list" id="attention"></ul>
+  <div class="kpis" id="kpis"></div>
+
+  <div class="two">
+    <section class="card chartcard">
+      <div class="top"><b>Invoices billed</b><span class="legend"><span><i style="background:var(--blue)"></i>Handled by the agent</span><span><i style="background:var(--blue-soft)"></i>Waiting for a person</span></span></div>
+      <div class="chartbody">
+        <div class="bignum"><b id="bigTotal">—</b><small id="bigSub"></small></div>
+        <div class="bars" id="chart"></div>
+      </div>
     </section>
-    <section class="card">
-      <h2>Recent activity</h2>
-      <ul class="list feed" id="feed"></ul>
+    <section class="card att">
+      <div class="head"><span>Needs your attention</span><span class="chip c-held" id="attN"></span><a href="/inbox" style="margin-left:auto;font-size:12px;font-weight:700;text-decoration:none">Review all</a></div>
+      <div id="attention"></div>
     </section>
   </div>
 
-  <div class="row two-eq">
-    <section class="card"><h2>Who is billing us <span class="n">suppliers · this run</span></h2><p class="muted" style="margin:0;padding:.5rem .9rem 0;font-size:.8rem">Every supplier that sent an invoice, how many, the money they are asking for, and how many of those invoices are waiting for a person.</p><div style="overflow:auto"><table><thead><tr><th>Supplier</th><th>Invoices sent</th><th>Amount billed</th><th>Waiting for you</th></tr></thead><tbody id="sup"></tbody></table></div></section>
-    <section class="card"><h2>Who is complaining <span class="n">customers · this run</span></h2><p class="muted" style="margin:0;padding:.5rem .9rem 0;font-size:.8rem">Every customer that raised a complaint or dispute, how many times, the refund or credit they asked for, and how many are waiting for a person.</p><div style="overflow:auto"><table><thead><tr><th>Customer</th><th>Complaints</th><th>Refund asked</th><th>Waiting for you</th></tr></thead><tbody id="cus"></tbody></table></div></section>
-  </div>
+  <section class="stages">
+    <b id="stagesTitle">Where the documents went</b>
+    <div class="stagegrid" id="stages"></div>
+  </section>
+
+  <section class="card tablecard">
+    <div class="tabs" id="tabs">
+      <button data-f="all" class="on" type="button">All documents</button><button data-f="held" type="button">Waiting</button><button data-f="handled" type="button">Handled</button><button data-f="human" type="button">Human decisions</button><button data-f="ignore" type="button">Ignored</button>
+      <div class="tools">
+        <label class="search"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="search" id="q" placeholder="Search" aria-label="Search documents"></label>
+        <a class="btn small" href="/ledger?format=csv"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>Export CSV</a>
+      </div>
+    </div>
+    <div style="overflow:auto"><table><thead><tr><th style="width:44px">#</th><th>Document</th><th>From</th><th>Status</th><th>Amount</th><th>Why</th><th>Received</th></tr></thead><tbody id="rows"></tbody></table></div>
+  </section>
 </main>
-<footer class="muted" style="padding:0 1.2rem 1.5rem;font-size:.78rem">Seeded, fictional data in demo mode — no real company, customer, invoice or person. <a href="/inside">How it works →</a></footer>
 
-<script src="/static/nav.js" data-page="dashboard"></script>
+<aside class="drawer" id="drawer" aria-label="Ask the agent">
+  <div class="head"><b>Ask the agent</b><span class="muted mono" id="askModel" style="font-size:11px"></span><button type="button" class="btn small" id="closeAsk" style="margin-left:auto">Close</button></div>
+  <div class="msgs" id="msgs"><div class="msg a">Ask about the inbox — counts, amounts, what's held and why, a supplier's total, today's activity.</div></div>
+  <div class="sugg" id="sugg"></div>
+  <form class="askrow" id="askForm"><input id="qa" placeholder="e.g. how many invoices came in today?" autocomplete="off"><button class="btn primary" type="submit">Ask</button></form>
+</aside>
+
+<script src="/static/nav.js" data-page="dashboard" data-title="Dashboard"></script>
 <script>
 const $ = s => document.querySelector(s);
 const tz = -new Date().getTimezoneOffset();
-let history = [];
+let history = [], items = [], filter = 'all';
+const typeLabel = t => ({supplier_invoice:'invoice', customer_dispute:'complaint', remittance:'payment advice', credit_note:'credit note', ignore:'ignored', unknown:'unknown'})[t] || (t || '—');
+const statusLabel = s => ({auto_approved:'Auto', executed:'Executed', held:'Held', approved:'Approved', rejected:'Rejected', failed:'Failed', ignore:'Ignored', shadow:'Shadow', received:'Received'})[s] || s;
+const pct = (a, b) => b ? Math.round((a - b) / b * 100) : null;
+const delta = (a, b, goodWhenUp = true) => { const p = pct(a, b); if (p == null || !isFinite(p)) return '<span>no data yesterday</span>'; const good = goodWhenUp ? p >= 0 : p <= 0; return `<em class="${good ? '' : 'neg'}">${p >= 0 ? '+' : '−'}${Math.abs(p)}%</em> vs yesterday`; };
 
 async function load() {
-  const [st, d] = await Promise.all([api('/status'), api(`/dashboard?tz=${tz}`)]);
-  renderNavStatus(st);
+  const [st, d, q] = await Promise.all([api('/status'), api(`/dashboard?tz=${tz}`), api('/queue')]);
+  renderNavStatus(st); items = q.items;
   const b = $('#banner'); b.className = 'banner';
   if (st.resetting) { b.textContent = 'Resetting demo…'; b.classList.add('show', 'info'); }
   else if (st.seeding) { b.textContent = `Seeding inbox ${st.seeding.done}/${st.seeding.total}…`; b.classList.add('show', 'info'); }
   else if (st.llm === 'fake') { b.innerHTML = 'Running with the <b>fake model</b> (keyword stand-in). Add an Anthropic API key in <a href="/settings">Settings</a> to see Claude read, extract, verify and answer for real.'; b.classList.add('show', 'warn'); }
   else if (st.last_error) { b.textContent = 'Last error: ' + st.last_error; b.classList.add('show', 'err'); }
   $('#resetBtn').disabled = !!(st.resetting || st.seeding) || st.app_mode === 'live';
-  $('#resetBtn').title = st.app_mode === 'live' ? 'disabled in live mode' : '';
+  $('#resetBtn').hidden = st.app_mode === 'live';
   $('#askModel').textContent = st.llm === 'fake' ? 'offline answers' : st.llm;
 
-  const t = d.today;
-  $('#todayDate').textContent = new Date(t.date + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
-  $('#snap').textContent = `run: ${d.run.documents} documents · updated ${new Date(d.snapshot_at).toLocaleTimeString('en-GB')}`;
-  const k = [
-    ['Emails today', t.emails, `${t.documents} documents`, ''],
-    ['Invoices', t.invoices, money(t.invoices_total) + ' total', ''],
-    ['Disputes', t.disputes, money(t.refunds_requested) + ' requested', ''],
-    ['Handled by agent', t.auto_executed, 'no human touch', 'ok'],
-    ['Waiting for you', t.held, t.held ? 'open the inbox to review' : 'nothing held', 'held'],
-    ['Failed', t.failed, t.failed ? 'retry from the inbox' : 'all actions ok', t.failed ? 'failed' : ''],
-    ['AI cost today', '$' + t.cost_usd.toFixed(3), `run total $${d.run.cost_usd.toFixed(3)}`, ''],
-  ];
-  $('#kpis').innerHTML = k.map(([l, v, s, c]) => `<div class="kpi ${c}"><small>${l}</small><b>${v}</b><div class="sub">${s}</div></div>`).join('');
+  const t = d.today, y = d.days[d.days.length - 2] || {}, today = d.days[d.days.length - 1] || {};
+  $('#sub').textContent = `${new Date(t.date + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })} · ${d.run.emails} emails in this run · ${d.run.documents} documents · updated ${new Date(d.snapshot_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`;
+  const share = t.documents ? Math.round(t.auto_executed / Math.max(1, t.documents - t.ignored) * 100) : 0;
+  $('#kpis').innerHTML = `
+    <div class="kpi"><small>Emails received</small><b>${t.emails}</b><div class="d">${delta(today.received, y.received)}</div></div>
+    <div class="kpi"><small>Handled by the agent</small><b>${t.auto_executed}</b><div class="d"><em>${share}%</em> of today, no human touch</div></div>
+    <div class="kpi hold"><small>Waiting for you</small><b>${t.held}</b><div class="d">${delta(today.held, y.held, false)}</div></div>
+    <div class="kpi ${t.failed ? 'bad' : ''}"><small>${t.failed ? 'Failed actions' : 'Model cost today'}</small><b>${t.failed ? t.failed : '$' + t.cost_usd.toFixed(3)}</b><div class="d">${t.failed ? 'retry from the inbox' : '$' + d.run.cost_usd.toFixed(3) + ' this run · ~4 calls per document'}</div></div>`;
 
+  const runInv = d.run.invoices_total, waitingInv = items.filter(i => i.doc_type === 'supplier_invoice' && i.status === 'held').length;
+  const [w, f] = runInv.toFixed(2).split('.');
+  $('#bigTotal').innerHTML = `£${Number(w).toLocaleString('en-GB')}<span>.${f}</span>`;
+  $('#bigSub').innerHTML = `<em>${d.run.invoices}</em> invoices this run · ${waitingInv} waiting`;
   renderChart(d.days);
-  $('#weekN').textContent = d.days.reduce((a, x) => a + x.received, 0) + ' documents';
+
   $('#attN').textContent = d.attention_total + ' open';
-  $('#attention').innerHTML = d.attention.length ? d.attention.map(a => `<li><span class="chip c-${a.status}">${a.status}</span><div class="t"><b><a href="/inbox#doc-${a.document_id}">${esc(a.subject)}</a></b><span>${esc(a.party || '—')}${a.amount ? ' · ' + money(a.amount) : ''} · ${esc(a.reason)}</span></div><a class="btn small" href="/inbox#doc-${a.document_id}">Review</a></li>`).join('') : '<li class="empty">Nothing needs a person right now.</li>';
-  $('#feed').innerHTML = d.feed.length ? d.feed.map(f => `<li class="k-${f.kind}"><span class="ic">${f.icon}</span><div class="t"><span style="color:var(--ink)"><a href="/inbox#doc-${f.document_id}" style="color:inherit;text-decoration:none">${esc(f.text)}</a></span></div><time>${new Date(f.at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</time></li>`).join('') : '<li class="empty">No activity yet.</li>';
-  $('#sup').innerHTML = d.top_suppliers.map(s => `<tr><td>${esc(s.name)}</td><td class="mono">${s.invoices}</td><td class="mono">${money(s.total)}</td><td>${s.held ? `<span class="chip c-held">${s.held} held</span>` : '<span class="muted">—</span>'}</td></tr>`).join('') || '<tr><td colspan="4" class="muted">No invoices yet.</td></tr>';
-  $('#cus').innerHTML = d.top_customers.map(c => `<tr><td>${esc(c.name)}</td><td class="mono">${c.disputes}</td><td class="mono">${c.requested ? money(c.requested) : '<span class="muted">no money asked</span>'}</td><td>${c.held ? `<span class="chip c-held">${c.held} held</span>` : '<span class="muted">—</span>'}</td></tr>`).join('') || '<tr><td colspan="4" class="muted">No complaints yet.</td></tr>';
+  $('#attention').innerHTML = d.attention.length ? d.attention.slice(0, 6).map(a => {
+    const inj = /instruction-like/.test(a.reason || ''), fail = a.status === 'failed';
+    const ic = fail ? ICONS.bell : inj ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>' : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>';
+    return `<a class="row" href="/inbox#doc-${a.document_id}"><span class="ic ${inj ? 'inj' : fail ? 'fail' : ''}">${ic}</span><span class="t"><b>${esc(a.subject)}</b><span>${esc(a.party || 'not on file')} · ${esc(a.reason)}</span></span><span class="amt">${a.amount ? money(a.amount) : ''}</span></a>`;
+  }).join('') : '<div class="empty">Nothing needs a person right now.</div>';
+
+  const c = st.counts || {}, total = Math.max(1, d.run.documents);
+  const handled = (c.executed || 0) + (c.auto_approved || 0) + (c.approved || 0), waiting = (c.held || 0), ignored = (c.ignore || 0), failed = (c.failed || 0), rejected = (c.rejected || 0);
+  $('#stagesTitle').textContent = `Where the ${d.run.documents} documents went`;
+  const stage = (label, n, note, color) => `<div class="stage"><small>${label}</small><div class="v"><b>${n}</b><span>${Math.round(n / total * 100)}%${note ? ' · ' + note : ''}</span></div><div class="bar"><i style="width:${Math.round(n / total * 100)}%;background:${color}"></i></div></div>`;
+  $('#stages').innerHTML = stage('Handled by the agent', handled, 'no human touch', 'var(--blue)') + stage('Waiting for a person', waiting, rejected ? rejected + ' rejected' : '', '#F5B14C') + stage('Ignored', ignored, 'duplicate, newsletter, catalogue', '#B8BEC6') + stage('Failed', failed, failed ? 'retry available' : 'all downstream actions succeeded', 'var(--bad)');
+  renderTable();
 }
 
 function renderChart(days) {
-  const W = 640, H = 190, padL = 28, padB = 26, padT = 10, gap = 14;
-  const max = Math.max(1, ...days.map(x => x.received));
-  const bw = (W - padL - gap * days.length) / days.length;
-  const y = v => padT + (H - padT - padB) * (1 - v / max);
-  let svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="documents per day">`;
-  [0, 0.5, 1].forEach(f => { const yy = y(max * f); svg += `<line x1="${padL}" x2="${W}" y1="${yy}" y2="${yy}" stroke="#eef0f3"/><text x="${padL - 6}" y="${yy + 4}" font-size="10" text-anchor="end" fill="#9ca3af" font-family="IBM Plex Mono,monospace">${Math.round(max * f)}</text>`; });
+  const W = 640, H = 170, padB = 24, padT = 34, gap = 18;
+  const max = Math.max(1, ...days.map(x => x.invoices_total));
+  const bw = (W - gap * days.length) / days.length;
+  const h = v => (H - padT - padB) * (v / max);
+  let svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="invoices billed per day, handled vs waiting">`;
+  svg += `<line x1="0" x2="${W}" y1="${H - padB}" y2="${H - padB}" stroke="#ECEDEA"/>`;
   days.forEach((d, i) => {
-    const x = padL + gap / 2 + i * (bw + gap);
-    let top = H - padB;
-    [['ignored', '#cbd5e1'], ['held', '#E8620C'], ['auto', '#0a7a2f']].forEach(([k, c]) => {
-      const h = (H - padT - padB) * (d[k] / max);
-      if (h > 0) { svg += `<rect x="${x}" y="${top - h}" width="${bw}" height="${h}" rx="3" fill="${c}"><title>${d.label}: ${d[k]} ${k}</title></rect>`; top -= h; }
-    });
-    svg += `<text x="${x + bw / 2}" y="${H - 8}" font-size="10" text-anchor="middle" fill="#6b7280" font-family="IBM Plex Mono,monospace">${d.label}</text>`;
-    if (d.received) svg += `<text x="${x + bw / 2}" y="${top - 4}" font-size="10" text-anchor="middle" fill="#374151" font-family="IBM Plex Mono,monospace">${d.received}</text>`;
+    const x = gap / 2 + i * (bw + gap), base = H - padB;
+    const hh = h(d.handled_total), hw = h(d.waiting_total);
+    if (hw > 0) svg += `<rect x="${x}" y="${base - hh - hw}" width="${bw}" height="${hw}" rx="3" fill="#C9D4F6"><title>${d.label}: waiting ${money(d.waiting_total)}</title></rect>`;
+    if (hh > 0) svg += `<rect x="${x}" y="${base - hh}" width="${bw}" height="${hh}" rx="3" fill="#1F4FD8"><title>${d.label}: handled ${money(d.handled_total)}</title></rect>`;
+    if (d.invoices_total > 0) svg += `<text x="${x + bw / 2}" y="${base - hh - hw - 6}" font-size="10" text-anchor="middle" fill="#3F4650" font-family="IBM Plex Mono,monospace">£${Math.round(d.invoices_total).toLocaleString('en-GB')}</text>`;
+    svg += `<text x="${x + bw / 2}" y="${H - 7}" font-size="11" text-anchor="middle" fill="#5B6470" font-family="IBM Plex Mono,monospace">${d.label.split(' ')[0]}</text>`;
   });
   $('#chart').innerHTML = svg + '</svg>';
 }
 
-// --- ask -----------------------------------------------------------------------------------------------
+function renderTable() {
+  const q = ($('#q').value || '').toLowerCase();
+  let rows = items;
+  if (filter === 'held') rows = rows.filter(r => r.status === 'held' || r.status === 'failed');
+  else if (filter === 'handled') rows = rows.filter(r => ['executed', 'approved', 'auto_approved'].includes(r.status));
+  else if (filter === 'human') rows = rows.filter(r => r.human_override);
+  else if (filter === 'ignore') rows = rows.filter(r => r.status === 'ignore');
+  if (q) rows = rows.filter(r => [r.subject, r.filename, r.party_name, r.from_addr, r.reason, r.ref].join(' ').toLowerCase().includes(q));
+  rows = rows.slice().sort((a, b) => new Date(b.received_at) - new Date(a.received_at));
+  $('#rows').innerHTML = rows.map(r => `<tr class="click" data-id="${r.document_id}">
+    <td class="mono muted">${r.seed_no ?? r.document_id}</td>
+    <td class="doc"><b>${esc(r.ref ? r.ref + ' ' + typeLabel(r.doc_type) : r.subject)}</b><small>${esc(r.filename === 'email-body.txt' ? 'email body' : r.filename)}</small></td>
+    <td>${esc(r.party_name || r.from_addr)}</td>
+    <td><span class="chip c-${r.status}">${statusLabel(r.status)}</span>${r.injection ? ' <span class="chip inj">injection blocked</span>' : ''}${r.human_override ? ' <span class="chip human">human</span>' : ''}${r.simulated ? ' <span class="chip sim">sim</span>' : ''}</td>
+    <td class="mono">${r.amount ? money(r.amount) : '—'}</td>
+    <td class="why">${esc(r.reason || '')}</td>
+    <td class="mono muted">${new Date(r.received_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</td></tr>`).join('') || '<tr><td colspan="7" class="empty">Nothing here.</td></tr>';
+}
+$('#rows').addEventListener('click', e => { const tr = e.target.closest('tr[data-id]'); if (tr) location.href = '/inbox#doc-' + tr.dataset.id; });
+$('#tabs').addEventListener('click', e => { const b = e.target.closest('button[data-f]'); if (!b) return; document.querySelectorAll('#tabs button[data-f]').forEach(x => x.classList.remove('on')); b.classList.add('on'); filter = b.dataset.f; renderTable(); });
+$('#q').addEventListener('input', renderTable);
+
+// --- ask drawer ---------------------------------------------------------------------------------------
 const SUGGESTIONS = ['How many invoices came in today and what is their total?', 'What is held and why?', 'Total from Acme this run', 'Which customers asked for refunds?', 'What did we spend on the model?'];
 $('#sugg').innerHTML = SUGGESTIONS.map(s => `<button type="button">${s}</button>`).join('');
-$('#sugg').addEventListener('click', e => { if (e.target.tagName === 'BUTTON') { $('#q').value = e.target.textContent; $('#askForm').requestSubmit(); } });
+$('#sugg').addEventListener('click', e => { if (e.target.tagName === 'BUTTON') { $('#qa').value = e.target.textContent; $('#askForm').requestSubmit(); } });
+$('#askBtn').addEventListener('click', () => { $('#drawer').classList.add('open'); setTimeout(() => $('#qa').focus(), 150); });
+$('#closeAsk').addEventListener('click', () => $('#drawer').classList.remove('open'));
+document.addEventListener('keydown', e => { if (e.key === 'Escape') $('#drawer').classList.remove('open'); });
 $('#askForm').addEventListener('submit', async e => {
   e.preventDefault();
-  const q = $('#q').value.trim(); if (!q) return;
-  $('#q').value = '';
+  const q = $('#qa').value.trim(); if (!q) return;
+  $('#qa').value = '';
   const m = $('#msgs');
   m.insertAdjacentHTML('beforeend', `<div class="msg u">${esc(q)}</div>`);
   const thinking = document.createElement('div'); thinking.className = 'msg a'; thinking.textContent = '…'; m.appendChild(thinking); m.scrollTop = m.scrollHeight;
@@ -163,7 +236,6 @@ $('#askForm').addEventListener('submit', async e => {
   } catch (err) { thinking.textContent = 'Could not answer: ' + err.message; }
   m.scrollTop = m.scrollHeight;
 });
-
 $('#resetBtn').addEventListener('click', async () => { if (!confirm('Wipe the current run and replay the 30 seed emails?')) return; try { await api('/reset', { method: 'POST' }); toast('reset started'); setTimeout(load, 800); } catch (e) { toast(e.message); } });
 
 function connect() { const es = new EventSource('/events'); es.addEventListener('changed', () => load().catch(() => {})); es.onerror = () => { es.close(); setTimeout(connect, 3000); }; }

@@ -6,10 +6,11 @@
 <title>Ops Agent — under the hood</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/app.css">
 <style>
   :root{--blue:#1F4FD8;--orange:#E8620C;--ink:#14161a;--muted:#6b7280;--line:#e5e7eb;--bg:#f6f7f9;--card:#fff;--mono:"IBM Plex Mono",ui-monospace,Menlo,monospace}
   *{box-sizing:border-box}
-  body{margin:0;font-family:Manrope,system-ui,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.55}
+  .wrap{font-size:15px;line-height:1.55}
   a{color:var(--blue)}
   .wrap{max-width:1040px;margin:0 auto;padding:1.5rem 1.2rem 4rem}
   header{display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:1.5rem}
@@ -49,8 +50,8 @@
 <body>
 <div class="wrap">
 <header>
-  <h1>Ops Agent — under the hood</h1>
-  <nav><a class="btn" href="/">← Dashboard</a><a class="btn primary" href="#build-yours">How I'd build yours</a></nav>
+  <h1>Under the hood</h1>
+  <nav><a class="btn primary" href="#build-yours">How I'd build yours</a></nav>
 </header>
 
 <p class="lead">An AI agent that reads a shared operations inbox, decides what each item is and who it is from, extracts what matters,
@@ -149,12 +150,14 @@ and holds everything risky for a person — with a reason. Every decision, actio
 <footer>Everything on this site is seeded, fictional data. No real company, customer, invoice or person. Built with Python, FastAPI, Postgres and Claude.</footer>
 </div>
 
+<script src="/static/nav.js" data-page="inside" data-title="Under the hood"></script>
 <script>
-const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const esc2 = window.esc;
 const NOTES = {invoice_auto_approve_max:'invoices above this (GBP) are held', invoice_tolerance_pct:'max % difference vs the supplier PO amount', refund_auto_max:'disputes asking for more are held',
   escalate_keywords:'any of these words in a dispute → hold', ignore_sender_domains:'sender domain contains one of these → ignore, no model call', min_confidence_auto:'below this the item is held regardless',
   shadow_mode:'true = evaluate everything, execute nothing', simulate_outage:'make one downstream system fail to show Failed → Retry'};
 fetch('/status').then(r => r.ok ? r.json() : Promise.reject(r.status)).then(s => {
+  renderNavStatus(s);
   document.querySelector('#rulesTable tbody').innerHTML = Object.entries(s.rules || {}).map(([k,v]) => `<tr><td class="mono">${esc(k)}</td><td class="mono">${esc(v)}</td><td>${esc(NOTES[k] || '')}</td></tr>`).join('');
   document.getElementById('rulesMeta').textContent = 'cached 60 s · ' + (s.rules_sheet_url ? 'source: Google Sheet' : 'source: rules table (sheet not configured)');
   if (s.rules_sheet_url) document.getElementById('sheetLink').innerHTML = `<a href="${esc(s.rules_sheet_url)}" target="_blank" rel="noopener">Open the sheet ↗</a>`;

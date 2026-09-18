@@ -8,8 +8,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/app.css">
 <style>
-  main{max-width:900px;margin:0 auto;padding:1rem 1.2rem 3rem;display:grid;gap:1rem}
-  .card .body{padding:.9rem}
+  main{max-width:960px;margin:0 auto;width:100%;padding:22px 28px 3rem;display:grid;gap:1rem}
+  .card .body{padding:16px 20px}
   .card p.help{margin:0 0 .8rem;color:var(--muted);font-size:.84rem}
   .field{display:grid;grid-template-columns:220px 1fr;gap:.4rem .8rem;align-items:center;margin:.45rem 0}
   .field label{font-weight:700;font-size:.84rem}
@@ -100,7 +100,7 @@
   </section>
 </main>
 
-<script src="/static/nav.js" data-page="settings"></script>
+<script src="/static/nav.js" data-page="settings" data-title="Settings"></script>
 <script>
 const $ = s => document.querySelector(s);
 let view = null;

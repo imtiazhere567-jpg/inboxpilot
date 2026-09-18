@@ -8,34 +8,21 @@
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/app.css">
 <style>
-  :root{--blue:#1F4FD8;--orange:#E8620C;--ink:#14161a;--muted:#6b7280;--line:#e5e7eb;--bg:#f6f7f9;--card:#fff;
         --ok:#0a7a2f;--okbg:#e6f4ea;--hold:#8a5a00;--holdbg:#fff4d6;--bad:#b00020;--badbg:#fde8ea;--grey:#4b5563;--greybg:#eef0f3;
         --shadow:#5b21b6;--shadowbg:#efe7fb;--mono:"IBM Plex Mono",ui-monospace,Menlo,monospace}
-  *{box-sizing:border-box}
-  body{margin:0;font-family:Manrope,system-ui,sans-serif;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.45}
-  a{color:var(--blue)}
-  header{background:var(--card);border-bottom:1px solid var(--line);padding:.7rem 1.2rem;display:flex;flex-wrap:wrap;gap:.8rem 1.4rem;align-items:center;position:sticky;top:48px;z-index:5}
-  header h1{margin:0;font-size:1.05rem;font-weight:800;letter-spacing:-.01em}
-  header h1 span{color:var(--muted);font-weight:600}
+  header.tools{background:var(--card);border-bottom:1px solid var(--line);padding:12px 28px;display:flex;flex-wrap:wrap;gap:.8rem 1.4rem;align-items:center;position:sticky;top:56px;z-index:4}
   .tiles{display:flex;gap:.6rem;flex-wrap:wrap}
-  .tile{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:.35rem .6rem;min-width:84px}
+  .tile{background:#FAFAF8;border:1px solid var(--line);border-radius:8px;padding:.35rem .6rem;min-width:84px}
   .tile b{display:block;font-family:var(--mono);font-size:1rem;font-weight:600}
   .tile small{color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.04em}
   .controls{margin-left:auto;display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
   .controls label{display:flex;align-items:center;gap:.35rem;font-weight:600;color:var(--grey)}
-  select,button.btn{font:inherit;font-weight:700;border:1px solid var(--line);background:#fff;border-radius:8px;padding:.4rem .7rem;cursor:pointer}
-  button.btn.primary{background:var(--blue);color:#fff;border-color:var(--blue)}
-  button.btn.warn{background:var(--orange);color:#fff;border-color:var(--orange)}
-  button.btn:disabled{opacity:.5;cursor:not-allowed}
   .countdown{font-family:var(--mono);color:var(--muted)}
-  .banner{background:var(--holdbg);color:var(--hold);padding:.45rem 1.2rem;font-weight:600;display:none}
-  .banner.show{display:block}
-  .banner.err{background:var(--badbg);color:var(--bad)}
-  main{display:grid;grid-template-columns:minmax(300px,1.05fr) minmax(340px,1.35fr) minmax(320px,1.2fr);gap:1rem;padding:1rem 1.2rem;align-items:start}
+  main{display:grid;grid-template-columns:minmax(300px,1.05fr) minmax(340px,1.35fr) minmax(320px,1.2fr);gap:1rem;padding:1rem 28px 1.5rem;align-items:start}
   @media (max-width:1100px){main{grid-template-columns:1fr 1fr}.col-ledger{grid-column:1/-1}}
   @media (max-width:720px){main{grid-template-columns:1fr}}
-  section{background:var(--card);border:1px solid var(--line);border-radius:12px;min-height:200px;display:flex;flex-direction:column;max-height:calc(100vh - 190px)}
-  section h2{margin:0;padding:.7rem .9rem;border-bottom:1px solid var(--line);font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);display:flex;align-items:center;gap:.5rem}
+  section{background:var(--card);border:1px solid var(--line);border-radius:12px;min-height:200px;display:flex;flex-direction:column;max-height:calc(100vh - 200px)}
+  section h2{margin:0;padding:12px 16px;border-bottom:1px solid var(--line);font-size:13px;font-weight:800;color:var(--ink);display:flex;align-items:center;gap:.5rem}
   section h2 .n{margin-left:auto;font-family:var(--mono);font-weight:500;text-transform:none;letter-spacing:0}
   .scroll{overflow:auto;flex:1}
   /* inbox */
@@ -45,15 +32,6 @@
   .item .subj{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .item .meta{grid-column:2;color:var(--muted);font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .item .meta .file{font-family:var(--mono)}
-  .chip{display:inline-block;font-size:.7rem;font-weight:700;padding:.12rem .45rem;border-radius:999px;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
-  .c-auto,.c-auto_approved,.c-executed,.c-approved{background:var(--okbg);color:var(--ok)}
-  .c-held{background:var(--holdbg);color:var(--hold)}
-  .c-failed,.c-rejected{background:var(--badbg);color:var(--bad)}
-  .c-ignore,.c-received{background:var(--greybg);color:var(--grey)}
-  .c-shadow{background:var(--shadowbg);color:var(--shadow)}
-  .chip.inj{background:#14161a;color:#fff}
-  .chip.sim{background:#fff;border:1px dashed var(--muted);color:var(--muted)}
-  .chip.human{background:#e0e7ff;color:#3730a3}
   /* review */
   .review{padding:.9rem}
   .review .empty{color:var(--muted);padding:2rem 1rem;text-align:center}
@@ -78,19 +56,15 @@
   .ltools button{font:inherit;font-size:.78rem;border:1px solid var(--line);background:#fff;border-radius:999px;padding:.2rem .6rem;cursor:pointer}
   .ltools button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
   .ltools a{margin-left:auto;font-size:.78rem;font-weight:700}
-  table{width:100%;border-collapse:collapse;font-size:.78rem}
-  th,td{padding:.4rem .6rem;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
-  th{position:sticky;top:0;background:#fff;color:var(--muted);font-size:.68rem;text-transform:uppercase;letter-spacing:.05em}
+  th{position:sticky;top:0}
   td.mono{font-family:var(--mono)}
   tr.click{cursor:pointer}tr.click:hover{background:#fafbfc}
-  footer{padding:.8rem 1.2rem 1.4rem;color:var(--muted);font-size:.78rem;display:flex;gap:1rem;flex-wrap:wrap}
+  footer{padding:0 28px 1.4rem;color:var(--muted);font-size:.78rem;display:flex;gap:1rem;flex-wrap:wrap}
   footer a{margin-left:auto}
-  .toast{position:fixed;bottom:1rem;right:1rem;background:var(--ink);color:#fff;padding:.6rem .9rem;border-radius:8px;font-weight:600;opacity:0;transition:opacity .2s;pointer-events:none}
-  .toast.show{opacity:1}
 </style>
 </head>
 <body>
-<header>
+<header class="tools">
   <div class="tiles" id="tiles"></div>
   <div class="controls">
     <label><input type="checkbox" id="shadow"> Shadow mode</label>
@@ -125,7 +99,7 @@
 </footer>
 <div class="toast" id="toast"></div>
 
-<script src="/static/nav.js" data-page="inbox"></script>
+<script src="/static/nav.js" data-page="inbox" data-title="Inbox &amp; review"></script>
 <script>
 const $ = s => document.querySelector(s);
 const state = { items: [], status: null, sel: null, filter: 'all', secs: null };
