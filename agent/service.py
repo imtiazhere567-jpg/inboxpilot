@@ -1,6 +1,8 @@
 """Read models for the page: queue, review item, ledger, status. Pure queries — no side effects."""
 from __future__ import annotations
 
+import time
+
 import csv
 import io
 from datetime import datetime, timezone
@@ -211,7 +213,17 @@ def _sheet_url() -> str | None:
         return None
 
 
+_last_touch = 0.0
+
+
 def touch_interaction(session: Session) -> None:
+    """Record that a person is using the page (defers the idle-aware reset). Written at most every 20 s so a page
+    load does not cost a database write per request."""
+    global _last_touch
+    now = time.monotonic()
+    if now - _last_touch < 20:
+        return
     state = session.get(AppState, 1)
     if state:
         state.last_interaction_at = datetime.now(timezone.utc)
+        _last_touch = now

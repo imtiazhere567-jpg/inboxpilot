@@ -40,7 +40,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 
-from agent import __version__, events
+from agent import __version__, cache, events
 from agent.config import get_settings
 from agent.db import ping, session_scope
 from agent.models import Document, ReviewNote, Rule
@@ -178,7 +178,9 @@ def inside() -> FileResponse:
 
 
 @app.get("/login", include_in_schema=False)
-def login_page() -> HTMLResponse:
+def login_page():
+    if not get_settings().demo_password:  # no gate configured — the link is the dashboard
+        return RedirectResponse("/", status_code=303)
     return HTMLResponse((STATIC_DIR / "login.html").read_text(encoding="utf-8"))
 
 
@@ -226,28 +228,45 @@ def api_brand():
     return {"name": s.company_name, "initials": s.company_initials, "logo": s.company_logo or None}
 
 
-@app.get("/status")
-def get_status():
+def _touch() -> None:
     with session_scope() as s:
         touch_interaction(s)
-        return status(s)
+
+
+@app.get("/status")
+def get_status():
+    _touch()
+
+    def compute():
+        with session_scope() as s:
+            return status(s)
+    return cache.cached("status", 5, compute)
 
 
 @app.get("/queue")
 def get_queue():
-    with session_scope() as s:
-        touch_interaction(s)
-        return {"version": events.version(), "items": queue(s)}
+    _touch()
+
+    def compute():
+        with session_scope() as s:
+            return {"version": events.version(), "items": queue(s)}
+    return cache.cached("queue", 5, compute)
 
 
 @app.get("/review/{document_id}")
 def get_review(document_id: int):
-    with session_scope() as s:
-        touch_interaction(s)
-        item = review_item(s, document_id)
-        if item is None:
-            raise HTTPException(status_code=404, detail="no such document")
-        return {"item": item.model_dump(mode="json"), **review_extras(s, document_id)}
+    _touch()
+
+    def compute():
+        with session_scope() as s:
+            item = review_item(s, document_id)
+            if item is None:
+                return None
+            return {"item": item.model_dump(mode="json"), **review_extras(s, document_id)}
+    body = cache.cached(("review", document_id), 30, compute)
+    if body is None:
+        raise HTTPException(status_code=404, detail="no such document")
+    return body
 
 
 @app.get("/ledger")
@@ -371,9 +390,12 @@ def retry(document_id: int, request: Request, _: None = Depends(rate_limited)):
 def get_dashboard(tz: int = 0):
     from agent.dashboard import dashboard
 
-    with session_scope() as s:
-        touch_interaction(s)
-        return dashboard(s, tz_offset_minutes=tz)
+    _touch()
+
+    def compute():
+        with session_scope() as s:
+            return dashboard(s, tz_offset_minutes=tz)
+    return cache.cached(("dashboard", tz), 5, compute)
 
 
 class AskBody(BaseModel):
@@ -467,9 +489,12 @@ class PartyBody(BaseModel):
 def api_parties(kind: PartyKind = "supplier"):
     from agent.parties import list_parties
 
-    with session_scope() as s:
-        touch_interaction(s)
-        return {"kind": kind, "items": list_parties(s, kind)}
+    _touch()
+
+    def compute():
+        with session_scope() as s:
+            return {"kind": kind, "items": list_parties(s, kind)}
+    return cache.cached(("parties", kind), 10, compute)
 
 
 @app.post("/api/parties/{kind}")

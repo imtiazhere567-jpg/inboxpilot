@@ -25,8 +25,10 @@ def settings():
 
 @pytest.fixture()
 def client(settings):
+    from agent import cache
     from agent.main import app
 
+    cache.clear()  # tests change the database directly, which the read cache cannot see
     with TestClient(app) as c:
         yield c
 
