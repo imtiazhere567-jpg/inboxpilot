@@ -236,14 +236,15 @@ async function suggestParty(id) {
   const box = document.getElementById('addParty');
   let sg; try { sg = await api('/api/parties/suggest/' + id); } catch (e) { toast(e.message); return; }
   box.innerHTML = `<h4>Add ${sg.kind}</h4>
-    <div class="muted" style="margin-bottom:.4rem">${esc(sg.why)} — check the identifiers: the email domain and/or the reference prefix the agent should recognise next time.</div>
+    <div class="muted" style="margin-bottom:.4rem">${esc(sg.why)} — check the email the agent should recognise next time.</div>
     <label style="display:block;font-size:.78rem;margin-top:.3rem">Name<input id="p-name" style="width:100%;font:inherit;border:1px solid var(--line);border-radius:6px;padding:.4rem" value="${esc(sg.name)}"></label>
-    <label style="display:block;font-size:.78rem;margin-top:.3rem">Identifiers (comma separated)<input id="p-pat" style="width:100%;font:inherit;font-family:var(--mono);border:1px solid var(--line);border-radius:6px;padding:.4rem" value="${esc(sg.identifier_patterns.join(', '))}"></label>
+    <label style="display:block;font-size:.78rem;margin-top:.3rem">Email address(es)<input id="p-pat" style="width:100%;font:inherit;font-family:var(--mono);border:1px solid var(--line);border-radius:6px;padding:.4rem" value="${esc(sg.emails.join(', '))}"></label>
+    <label style="display:block;font-size:.78rem;margin-top:.3rem">Reference prefix (optional)<input id="p-prefix" style="width:100%;font:inherit;font-family:var(--mono);border:1px solid var(--line);border-radius:6px;padding:.4rem" value="${esc((sg.reference_prefix || '').replace(/-$/, ''))}"></label>
     ${sg.kind === 'supplier' ? `<label style="display:block;font-size:.78rem;margin-top:.3rem">Expected invoice amount / PO (optional, used for the ±5% check)<input id="p-po" style="width:100%;font:inherit;font-family:var(--mono);border:1px solid var(--line);border-radius:6px;padding:.4rem" value="${sg.po_amount ?? ''}"></label>` : ''}
     <div style="display:flex;gap:.5rem;margin-top:.6rem"><button class="btn small primary" onclick="createPartyFromDoc(${id},'${sg.kind}')">Save &amp; process again</button><button class="btn small" onclick="loadReview(${id})">Cancel</button></div>`;
 }
 async function createPartyFromDoc(id, kind) {
-  const body = { name: document.getElementById('p-name').value, identifier_patterns: document.getElementById('p-pat').value };
+  const body = { name: document.getElementById('p-name').value, identifier_patterns: document.getElementById('p-pat').value, reference_prefix: document.getElementById('p-prefix').value };
   if (kind === 'supplier') body.po_amount = document.getElementById('p-po').value || null;
   try { const r = await api(`/api/parties/from_document/${id}?kind=${kind}`, { method: 'POST', body: JSON.stringify(body) }); toast(`added · now ${r.status}`); await load(); }
   catch (e) { toast(e.message); }

@@ -24,17 +24,36 @@ def _domain(addr: str) -> str:
     return addr.rsplit("@", 1)[-1].lower().strip() if "@" in addr else ""
 
 
-def _clean_patterns(raw: list[str] | str) -> list[str]:
-    items = raw if isinstance(raw, list) else re.split(r"[|,\n]", raw or "")
+def identifiers_from_emails(raw: list[str] | str) -> list[str]:
+    """Turn email addresses into identifiers.
+    company address  accounts@acmesupplies.example -> acmesupplies.example  (any sender at that domain matches)
+    generic mailbox  jas.patel@gmail.com          -> jas.patel@gmail.com   (only that exact address matches)
+    a bare domain is accepted as-is."""
+    items = raw if isinstance(raw, list) else re.split(r"[|,;\s]+", raw or "")
     out: list[str] = []
     for p in items:
-        p = p.strip()
+        p = p.strip().lower().strip("<>")
         if not p:
             continue
-        if p.endswith("-"):
-            p = p.upper()
+        if "@" in p:
+            dom = p.rsplit("@", 1)[-1]
+            ident = p if dom in _GENERIC_DOMAINS else dom
         else:
-            p = p.lower()
+            ident = p
+        if ident not in out:
+            out.append(ident)
+    return out
+
+
+def _clean_patterns(raw: list[str] | str, prefixes: list[str] | str | None = None) -> list[str]:
+    out = identifiers_from_emails(raw)
+    pitems = prefixes if isinstance(prefixes, list) else re.split(r"[|,;\s]+", prefixes or "")
+    for p in pitems:
+        p = p.strip().upper()
+        if not p:
+            continue
+        if not p.endswith("-"):
+            p += "-"
         if p not in out:
             out.append(p)
     return out
@@ -57,7 +76,9 @@ def _doc_counts(session: Session, kind: str) -> dict[int, dict[str, int]]:
 
 def _to_dict(kind: str, obj, counts: dict[int, dict[str, int]]) -> dict[str, Any]:
     c = counts.get(obj.id, {"total": 0, "held": 0})
-    d = {"id": obj.id, "kind": kind, "name": obj.name, "identifier_patterns": list(obj.identifier_patterns or []),
+    pats = list(obj.identifier_patterns or [])
+    d = {"id": obj.id, "kind": kind, "name": obj.name, "identifier_patterns": pats,
+         "emails": [p for p in pats if not p.endswith("-")], "prefixes": [p for p in pats if p.endswith("-")],
          "documents": c["total"], "held": c["held"]}
     if kind == "supplier":
         d.update(po_amount=float(obj.po_amount) if obj.po_amount is not None else None, qbo_vendor_id=obj.qbo_vendor_id, iban_last4=obj.iban_last4)
@@ -77,9 +98,9 @@ def upsert_party(session: Session, kind: str, data: dict[str, Any], party_id: in
     name = (data.get("name") or "").strip()
     if not name:
         raise ValueError("name is required")
-    patterns = _clean_patterns(data.get("identifier_patterns") or [])
+    patterns = _clean_patterns(data.get("identifier_patterns") or [], data.get("reference_prefix") or "")
     if not patterns:
-        raise ValueError("at least one identifier is required (an email domain like acme.example or a reference prefix like ACME-)")
+        raise ValueError("at least one email address is required (e.g. accounts@acmesupplies.example)")
     obj = session.get(model, party_id) if party_id else None
     if party_id and obj is None:
         raise LookupError("no such party")
@@ -123,18 +144,19 @@ def suggest_from_document(session: Session, doc: Document) -> dict[str, Any]:
     ex = doc.extracted or {}
     kind = "supplier" if doc.doc_type in ("supplier_invoice", "credit_note", None, "unknown") else "customer"
     text = doc.source_text or ""
-    patterns: list[str] = []
+    emails: list[str] = []
     dom = _domain(email.from_addr)
-    if dom and dom not in _INTERNAL_DOMAINS and dom not in _GENERIC_DOMAINS:
-        patterns.append(dom)
-    for m in re.finditer(r"[\w.+-]+@([\w-]+(?:\.[\w-]+)+)", text):
-        d = m.group(1).lower()
-        if d not in patterns and d not in _INTERNAL_DOMAINS and d not in _GENERIC_DOMAINS and len(patterns) < 3:
-            patterns.append(d)
+    if dom and dom not in _INTERNAL_DOMAINS:
+        emails.append(email.from_addr.lower())
+    for m in re.finditer(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+", text):
+        addr = m.group(0).lower()
+        d = addr.rsplit("@", 1)[-1]
+        if addr not in emails and d not in _INTERNAL_DOMAINS and len(emails) < 3:
+            emails.append(addr)
     ref = ex.get("invoice_number") or ex.get("order_ref") or ""
     m = _PREFIX_RE.search(ref) or _PREFIX_RE.search(email.subject or "") or _PREFIX_RE.search(text[:600])
-    if m:
-        patterns.append(m.group(1).upper() + "-")
+    prefix = m.group(1).upper() + "-" if m else ""
+    patterns = _clean_patterns(emails, prefix)
     name = (ex.get("supplier_name_on_document") or ex.get("customer_name_on_document") or "").strip()
     if not name:
         first = next((ln.strip() for ln in text.splitlines() if ln.strip()), "")
@@ -142,7 +164,7 @@ def suggest_from_document(session: Session, doc: Document) -> dict[str, Any]:
     if not name and dom:
         name = dom.split(".")[0].replace("-", " ").title()
     po = ex.get("total") if kind == "supplier" else None
-    return {"kind": kind, "name": name, "identifier_patterns": patterns, "po_amount": po,
+    return {"kind": kind, "name": name, "identifier_patterns": patterns, "emails": emails, "reference_prefix": prefix, "po_amount": po,
             "contact_email": email.from_addr if kind == "customer" else None,
             "why": f"from {email.from_addr}" + (f", reference {ref}" if ref else "")}
 

@@ -42,11 +42,12 @@
 
   <section class="card" id="formCard" hidden>
     <h2 id="formTitle">Add supplier</h2>
-    <div class="help">Identifiers are how the agent recognises this party in an email: the sender's <b>email domain</b> (e.g. <code>acmesupplies.example</code>) and/or the <b>reference prefix</b> on their documents (e.g. <code>ACME-</code> for invoice numbers like ACME-2031). Names alone are never trusted.</div>
+    <div class="help">Give the <b>email address</b> they write from. A company address (<code>accounts@acmesupplies.example</code>) makes the agent recognise anyone at that company; a personal mailbox (<code>name@gmail.com</code>) is matched exactly. Names alone are never trusted.</div>
     <form class="form" id="form">
       <input type="hidden" id="f-id">
       <label>Name<input id="f-name" required placeholder="Acme Supplies Ltd"></label>
-      <label>Identifiers<small>comma separated · domain and/or PREFIX-</small><input id="f-pat" required placeholder="acmesupplies.example, ACME-"></label>
+      <label>Email address(es)<small>comma separated · more than one is fine</small><input id="f-pat" required placeholder="accounts@acmesupplies.example"></label>
+      <label>Reference prefix<small>optional · the start of their invoice / account numbers, e.g. ACME for ACME-2031 — lets the agent recognise a document even from an unknown address</small><input id="f-prefix" placeholder="ACME"></label>
       <label class="k-supplier">Expected invoice amount (PO)<small>optional · invoices more than ±5% away are held</small><input id="f-po" placeholder="1240.00"></label>
       <label class="k-supplier">QuickBooks vendor id<small>optional · filled automatically on first bill</small><input id="f-qbo"></label>
       <label class="k-customer">Contact email<small>optional</small><input id="f-email" placeholder="facilities@customer.example"></label>
@@ -74,11 +75,11 @@ async function load() {
   $('#nSup').textContent = kind === 'supplier' ? `(${items.length})` : $('#nSup').textContent;
   $('#nCus').textContent = kind === 'customer' ? `(${items.length})` : $('#nCus').textContent;
   $('#thead').innerHTML = kind === 'supplier'
-    ? '<tr><th>Supplier</th><th>Identifiers</th><th>Expected amount</th><th>QuickBooks</th><th>Documents</th><th>Held</th></tr>'
-    : '<tr><th>Customer</th><th>Identifiers</th><th>Contact</th><th>HubSpot</th><th>Documents</th><th>Held</th></tr>';
+    ? '<tr><th>Supplier</th><th>Recognised by</th><th>Expected amount</th><th>QuickBooks</th><th>Documents</th><th>Held</th></tr>'
+    : '<tr><th>Customer</th><th>Recognised by</th><th>Contact</th><th>HubSpot</th><th>Documents</th><th>Held</th></tr>';
   $('#rows').innerHTML = items.map(p => `<tr class="click" data-id="${p.id}">
     <td><b>${esc(p.name)}</b></td>
-    <td>${p.identifier_patterns.map(x => `<span class="pat">${esc(x)}</span>`).join('')}</td>
+    <td>${p.emails.map(x => `<span class="pat" title="${x.includes('@') ? 'this exact address' : 'anyone @' + x}">${esc(x.includes('@') ? x : '@' + x)}</span>`).join('')}${p.prefixes.map(x => `<span class="pat" title="reference prefix">${esc(x)}…</span>`).join('')}</td>
     ${kind === 'supplier' ? `<td class="mono">${p.po_amount != null ? money(p.po_amount) : '<span class="muted">—</span>'}</td><td class="mono">${p.qbo_vendor_id ? esc(p.qbo_vendor_id) : '<span class="muted">not linked</span>'}</td>`
                           : `<td class="mono">${esc(p.contact_email || '—')}</td><td class="mono">${p.hubspot_company_id ? esc(p.hubspot_company_id) : '<span class="muted">not linked</span>'}</td>`}
     <td class="mono">${p.documents}</td><td>${p.held ? `<span class="chip c-held">${p.held}</span>` : '<span class="muted">—</span>'}</td></tr>`).join('') || `<tr><td colspan="6" class="muted">Nothing on file yet — press + Add or import.</td></tr>`;
@@ -91,7 +92,7 @@ function showForm(p) {
   document.querySelectorAll('.k-supplier').forEach(el => el.style.display = kind === 'supplier' ? '' : 'none');
   document.querySelectorAll('.k-customer').forEach(el => el.style.display = kind === 'customer' ? '' : 'none');
   $('#formTitle').textContent = (p ? 'Edit ' : 'Add ') + kind;
-  $('#f-id').value = p ? p.id : ''; $('#f-name').value = p ? p.name : ''; $('#f-pat').value = p ? p.identifier_patterns.join(', ') : '';
+  $('#f-id').value = p ? p.id : ''; $('#f-name').value = p ? p.name : ''; $('#f-pat').value = p ? p.emails.join(', ') : ''; $('#f-prefix').value = p ? p.prefixes.map(x => x.replace(/-$/, '')).join(', ') : '';
   $('#f-po').value = p && p.po_amount != null ? p.po_amount : ''; $('#f-qbo').value = p ? (p.qbo_vendor_id || '') : '';
   $('#f-email').value = p ? (p.contact_email || '') : ''; $('#f-hs').value = p ? (p.hubspot_company_id || '') : '';
   $('#deleteBtn').hidden = !p; $('#formResult').textContent = ''; $('#f-name').focus();
@@ -104,7 +105,7 @@ $('#rows').addEventListener('click', e => { const tr = e.target.closest('tr[data
 
 $('#form').addEventListener('submit', async e => {
   e.preventDefault();
-  const id = $('#f-id').value, body = { name: $('#f-name').value, identifier_patterns: $('#f-pat').value };
+  const id = $('#f-id').value, body = { name: $('#f-name').value, identifier_patterns: $('#f-pat').value, reference_prefix: $('#f-prefix').value };
   if (kind === 'supplier') { body.po_amount = $('#f-po').value || null; body.qbo_vendor_id = $('#f-qbo').value || null; }
   else { body.contact_email = $('#f-email').value || null; body.hubspot_company_id = $('#f-hs').value || null; }
   const r = $('#formResult'); r.className = 'result';

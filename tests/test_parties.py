@@ -27,11 +27,13 @@ def test_list_and_counts(client):
 
 
 def test_add_edit_delete_and_validation(client):
-    r = client.post("/api/parties/customer", json={"name": "Harbourside Hotel", "identifier_patterns": "harbourside-hotel.example, HSH-", "contact_email": "gm@harbourside-hotel.example"})
+    r = client.post("/api/parties/customer", json={"name": "Harbourside Hotel", "identifier_patterns": "gm@harbourside-hotel.example, jo.bloggs@gmail.com",
+                                                    "reference_prefix": "hsh", "contact_email": "gm@harbourside-hotel.example"})
     assert r.status_code == 200
     pid = r.json()["id"]
     row = next(p for p in r.json()["items"] if p["id"] == pid)
-    assert row["identifier_patterns"] == ["harbourside-hotel.example", "HSH-"]
+    assert row["identifier_patterns"] == ["harbourside-hotel.example", "jo.bloggs@gmail.com", "HSH-"], "company address -> domain; gmail -> exact address; prefix upper-cased with dash"
+    assert row["emails"] == ["harbourside-hotel.example", "jo.bloggs@gmail.com"] and row["prefixes"] == ["HSH-"]
     assert client.put(f"/api/parties/customer/{pid}", json={"name": "Harbourside Hotel Ltd", "identifier_patterns": ["harbourside-hotel.example"]}).status_code == 200
     assert client.post("/api/parties/customer", json={"name": "harbourside hotel ltd", "identifier_patterns": "x.example"}).status_code == 422  # duplicate
     assert client.post("/api/parties/customer", json={"name": "No Ids", "identifier_patterns": ""}).status_code == 422
@@ -43,7 +45,8 @@ def test_suggest_and_add_from_document_reprocesses(client):
     doc = _held_doc(client, 12)
     assert doc["status"] == "held" and doc["reason"].startswith("no supplier match")
     sg = client.get(f"/api/parties/suggest/{doc['document_id']}").json()
-    assert sg["kind"] == "supplier" and "northstar-hygiene.example" in sg["identifier_patterns"] and "NSH-" in sg["identifier_patterns"]
+    assert sg["kind"] == "supplier" and sg["emails"] == ["invoices@northstar-hygiene.example"] and sg["reference_prefix"] == "NSH-"
+    assert sg["identifier_patterns"] == ["northstar-hygiene.example", "NSH-"]
     r = client.post(f"/api/parties/from_document/{doc['document_id']}?kind=supplier", json={"name": sg["name"], "identifier_patterns": sg["identifier_patterns"], "po_amount": "430.00"})
     assert r.status_code == 200 and r.json()["status"] == "executed", r.text
     rv = client.get(f"/review/{doc['document_id']}").json()

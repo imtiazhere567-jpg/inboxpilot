@@ -410,7 +410,8 @@ PartyKind = Literal["supplier", "customer"]
 
 class PartyBody(BaseModel):
     name: str
-    identifier_patterns: list[str] | str = []
+    identifier_patterns: list[str] | str = []   # email addresses (or bare domains)
+    reference_prefix: str | None = None          # optional, e.g. ACME-
     po_amount: float | str | None = None
     qbo_vendor_id: str | None = None
     iban_last4: str | None = None
