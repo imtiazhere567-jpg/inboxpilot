@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ops Agent — review queue</title>
+<style>
+  body{font-family:system-ui,sans-serif;margin:0;padding:2rem;background:#f6f7f9;color:#1a1a1a}
+  .card{max-width:640px;margin:10vh auto;background:#fff;border:1px solid #e3e5e8;border-radius:12px;padding:2rem}
+  code{background:#eef;padding:.1em .4em;border-radius:4px}
+  .ok{color:#0a7a2f}.bad{color:#b00020}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Ops Agent — invoices &amp; disputes</h1>
+  <p>Phase 0 skeleton. The review queue page arrives in Phase 4.</p>
+  <p id="health">Checking <code>/health</code>…</p>
+</div>
+<script>
+fetch('/health').then(r=>r.json()).then(h=>{
+  const el=document.getElementById('health');
+  const ints=Object.entries(h.integrations).map(([k,v])=>`${k}: <span class="${v?'ok':'bad'}">${v?'configured':'missing'}</span>`).join(' · ');
+  el.innerHTML=`Service <b class="${h.status==='ok'?'ok':'bad'}">${h.status}</b> · v${h.version} · env ${h.env} · database <span class="${h.database?'ok':'bad'}">${h.database?'connected':'unreachable'}</span><br><small>${ints}</small>`;
+}).catch(()=>{document.getElementById('health').textContent='/health unreachable'});
+</script>
+</body>
+</html>
