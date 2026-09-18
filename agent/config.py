@@ -68,6 +68,10 @@ class Settings(BaseSettings):
     seed_delay_seconds: float = Field(default=1.2, description="Pause between seed emails so the page shows them arriving")
     approve_rate_limit_per_minute: int = 30
     app_mode: Literal["demo", "live"] = Field(default="demo", description="demo = seeded inbox + auto reset; live = your real inbox, no reset")
+    presentation_mode: bool = Field(default=False, description="Hide demo/fake/simulated signals on every page (for recordings and client walkthroughs)")
+    company_name: str = "Northwind Facilities Ltd"
+    company_email: str = "ops@northwindfacilities.co.uk"
+    company_initials: str = "NF"
     settings_secret: str = Field(default="", description="Encrypts dashboard-saved settings; falls back to RESET_TOKEN")
 
     @property

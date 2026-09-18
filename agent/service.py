@@ -177,6 +177,8 @@ def status(session: Session) -> dict[str, Any]:
         "run_started_at": run.started_at.isoformat() if run else None,
         "mode": "shadow" if rules.shadow_mode else "live",
         "app_mode": settings.app_mode,
+        "presentation": bool(settings.presentation_mode),
+        "company": {"name": settings.company_name, "email": settings.company_email, "initials": settings.company_initials},
         "shadow_mode": rules.shadow_mode,
         "simulate_outage": rules.simulate_outage,
         "resetting": bool(flags.get("resetting")),

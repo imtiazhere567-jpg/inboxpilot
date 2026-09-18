@@ -45,7 +45,7 @@
     <aside class="side">
       <section class="card"><div class="head"><span>Try asking</span></div><div class="body" id="sugg"></div></section>
       <section class="card"><div class="head"><span>What it can see</span></div><div class="body"><dl id="scope"></dl><p style="margin-top:6px">The current run's documents, statuses, reasons, amounts, parties, human notes and actions. It cannot see your mailbox or anything outside the ledger.</p></div></section>
-      <section class="card"><div class="head"><span>Model</span></div><div class="body"><p id="modelNote"></p></div></section>
+      <section class="card"><div class="head"><span>How it answers</span></div><div class="body"><p id="modelNote"></p></div></section>
     </aside>
   </div>
 </main>
@@ -71,11 +71,13 @@ async function load() {
   const st = await api('/status'); renderNavStatus(st);
   const c = st.counts || {};
   $('#scope').innerHTML = `<dt>documents</dt><dd>${st.documents}</dd><dt>emails</dt><dd>${st.emails}</dd><dt>waiting</dt><dd>${c.held || 0}</dd><dt>run cost</dt><dd>$${(st.cost_usd || 0).toFixed(3)}</dd>`;
-  $('#modelNote').innerHTML = st.llm === 'fake'
-    ? 'Offline answers — a keyword stand-in is running. Add an Anthropic API key in <a href="/settings">Settings</a> for free-form answers from Claude.'
-    : `<span class="badge model">${esc(st.llm)}</span> answers from a compact view of the ledger (~${st.documents} rows), cached between questions.`;
+  $('#modelNote').innerHTML = st.presentation
+    ? 'Answers are produced only from the ledger of this inbox — counts, amounts, statuses, reasons and history. Nothing outside it.'
+    : st.llm === 'fake'
+      ? 'Offline answers — a keyword stand-in is running. Add an Anthropic API key in <a href="/settings">Settings</a> for free-form answers from Claude.'
+      : `<span class="badge model">${esc(st.llm)}</span> answers from a compact view of the ledger (~${st.documents} rows), cached between questions.`;
   const b = $('#banner'); b.className = 'banner';
-  if (st.llm === 'fake') { b.innerHTML = 'Running with the <b>fake model</b> — answers are limited to a few question types. Add an Anthropic API key in <a href="/settings">Settings</a>.'; b.classList.add('show', 'warn'); }
+  if (st.llm === 'fake' && !st.presentation) { b.innerHTML = 'Running with the <b>fake model</b> — answers are limited to a few question types. Add an Anthropic API key in <a href="/settings">Settings</a>.'; b.classList.add('show', 'warn'); }
 }
 $('#askForm').addEventListener('submit', async e => {
   e.preventDefault();
@@ -85,7 +87,7 @@ $('#askForm').addEventListener('submit', async e => {
   const m = $('#msgs'); const thinking = document.createElement('div'); thinking.className = 'msg a'; thinking.textContent = '…'; m.appendChild(thinking); m.scrollTop = m.scrollHeight;
   try {
     const r = await api('/ask', { method: 'POST', body: JSON.stringify({ question: q, history: history.filter(h => h.role === 'user' || h.role === 'assistant').map(h => ({ role: h.role, content: h.content })).slice(-8) }) });
-    history.push({ role: 'assistant', content: r.answer, meta: `${r.model} · ${r.duration_ms} ms · $${r.cost_usd.toFixed(4)}` });
+    history.push({ role: 'assistant', content: r.answer, meta: window.PRESENT ? `${r.duration_ms} ms · $${r.cost_usd.toFixed(4)}` : `${r.model} · ${r.duration_ms} ms · $${r.cost_usd.toFixed(4)}` });
   } catch (err) { history.push({ role: 'assistant', content: 'Could not answer: ' + err.message }); }
   save(); renderHistory();
 });

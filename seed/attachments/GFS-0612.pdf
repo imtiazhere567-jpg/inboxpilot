@@ -43,7 +43,7 @@ endobj
 endobj
 8 0 obj
 <<
-/Length 2557
+/Length 2550
 >>
 stream
 1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
@@ -52,7 +52,7 @@ BT 1 0 0 1 56.69291 771.0236 Tm (Granite Facilities Supplies) Tj T* ET
 BT /F1 9 Tf 10.8 TL ET
 BT 1 0 0 1 56.69291 756.8504 Tm (Quarry Road Industrial Park) Tj T* ET
 BT 1 0 0 1 56.69291 742.6772 Tm (Gloucester GL2 5GG) Tj T* ET
-BT 1 0 0 1 56.69291 728.5039 Tm (sales@granitefs.example) Tj T* ET
+BT 1 0 0 1 56.69291 728.5039 Tm (sales@granitefs.co.uk) Tj T* ET
 BT 1 0 0 1 56.69291 714.3307 Tm (VAT no. GB 777 7777 77) Tj T* ET
 BT /F2 22 Tf 26.4 TL ET
 BT 1 0 0 1 448.1187 771.0236 Tm (INVOICE) Tj T* ET
@@ -67,7 +67,7 @@ BT 1 0 0 1 56.69291 660.4724 Tm (Northwind Facilities Ltd) Tj T* ET
 BT 1 0 0 1 56.69291 646.2992 Tm (Unit 4, Harbourside Business Park) Tj T* ET
 BT 1 0 0 1 56.69291 632.126 Tm (Bristol BS1 6XX) Tj T* ET
 BT 1 0 0 1 56.69291 617.9528 Tm (United Kingdom) Tj T* ET
-BT 1 0 0 1 56.69291 603.7795 Tm (accounts@northwind-facilities.example) Tj T* ET
+BT 1 0 0 1 56.69291 603.7795 Tm (accounts@northwindfacilities.co.uk) Tj T* ET
 BT /F2 10 Tf 12 TL ET
 BT 1 0 0 1 56.69291 564.0945 Tm (Description) Tj T* ET
 BT 1 0 0 1 323.4875 564.0945 Tm (Qty) Tj T* ET
@@ -93,7 +93,7 @@ BT 1 0 0 1 356.5329 453.5433 Tm (TOTAL DUE) Tj T* ET
 BT 1 0 0 1 472.5467 453.5433 Tm (GBP 792.00) Tj T* ET
 BT /F1 9 Tf 10.8 TL ET
 BT 1 0 0 1 56.69291 402.5197 Tm (Payment by BACS to Granite Facilities Supplies \227 sort code 20-00-06, account ****3376. Please quote GFS-0612.) Tj T* ET
-BT 1 0 0 1 56.69291 388.3465 Tm (Payment terms: due 2026-10-12. Queries: sales@granitefs.example) Tj T* ET
+BT 1 0 0 1 56.69291 388.3465 Tm (Payment terms: due 2026-10-12. Queries: sales@granitefs.co.uk) Tj T* ET
  
 endstream
 endobj
@@ -119,5 +119,5 @@ trailer
 /Size 9
 >>
 startxref
-3533
+3526
 %%EOF

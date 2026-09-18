@@ -32,7 +32,7 @@ def _inject(client, seed_no: int):
 
 @pytest.mark.usefixtures("db")
 def test_inject_requires_token(client):
-    r = client.post("/inject", json={"message_id": "x", "from_addr": "a@b.example", "subject": "s", "body_text": "b"})
+    r = client.post("/inject", json={"message_id": "x", "from_addr": "a@b.co.uk", "subject": "s", "body_text": "b"})
     assert r.status_code == 401
 
 

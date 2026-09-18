@@ -1,5 +1,5 @@
 supplier,supplier_email,invoice_number,invoice_date,due_date,currency
-Juniper Window Cleaning,hello@juniperwindows.example,JWC-1281,2026-09-11,2026-09-25,GBP
+Juniper Window Cleaning,hello@juniperwindows.co.uk,JWC-1281,2026-09-11,2026-09-25,GBP
 
 description,qty,unit_price_net,line_net
 External window clean — 3 sites,3,120.00,360.00

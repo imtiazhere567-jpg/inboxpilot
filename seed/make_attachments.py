@@ -171,7 +171,7 @@ def marketing_pdf() -> bytes:
         "15% off all orders placed before 31 March 2027 with code SPRING15.",
         "",
         "This is a marketing brochure, not an invoice. No payment is due.",
-        f"Contact {sup['email']} or visit brightline-uniforms.example/catalogue",
+        f"Contact {sup['email']} or visit brightlineuniforms.co.uk/catalogue",
     ]
     y = h - 70 * mm
     for line in lines:
@@ -189,7 +189,7 @@ def letter_pdf() -> bytes:
     c.setFont("Helvetica-Bold", 14)
     c.drawString(20 * mm, h - 25 * mm, "Westgate Medical Centre")
     c.setFont("Helvetica", 9)
-    for i, line in enumerate(["8 Westgate Road, Bristol BS3 1WW", "practicemanager@westgatemedical.example", "Account WMC-1180"]):
+    for i, line in enumerate(["8 Westgate Road, Bristol BS3 1WW", "practicemanager@westgatemedical.co.uk", "Account WMC-1180"]):
         c.drawString(20 * mm, h - 31 * mm - i * 5 * mm, line)
     c.setFont("Helvetica", 10)
     c.drawString(20 * mm, h - 55 * mm, "12 September 2026")

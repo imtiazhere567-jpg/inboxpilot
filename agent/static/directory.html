@@ -76,15 +76,15 @@
   <div class="ptabs" id="ptabs"><button data-p="details" class="on" type="button">Details</button><button data-p="history" type="button">History <span class="mono" id="histN"></span></button></div>
   <div class="body">
     <div id="pane-details">
-      <div class="help">Give the <b>email address</b> they write from. A company address (<code>accounts@acmesupplies.example</code>) makes the agent recognise anyone at that company; a personal mailbox (<code>name@gmail.com</code>) is matched exactly. Names alone are never trusted.</div>
+      <div class="help">Give the <b>email address</b> they write from. A company address (<code>accounts@acmesupplies.co.uk</code>) makes the agent recognise anyone at that company; a personal mailbox (<code>name@gmail.com</code>) is matched exactly. Names alone are never trusted.</div>
       <form class="form" id="form">
         <input type="hidden" id="f-id">
         <label>Name<small>as it should appear in QuickBooks / HubSpot</small><input class="field-input" id="f-name" required placeholder="Acme Supplies Ltd"></label>
-        <label>Email address(es)<small>comma separated · more than one is fine</small><input class="field-input" id="f-pat" required placeholder="accounts@acmesupplies.example"></label>
+        <label>Email address(es)<small>comma separated · more than one is fine</small><input class="field-input" id="f-pat" required placeholder="accounts@acmesupplies.co.uk"></label>
         <label>Reference prefix<small>optional · start of their invoice / account numbers, e.g. ACME for ACME-2031 — recognises a document even from an unknown address</small><input class="field-input" id="f-prefix" placeholder="ACME"></label>
         <label class="k-supplier">Expected invoice amount (PO)<small>optional · invoices more than ±5% away are held</small><input class="field-input" id="f-po" placeholder="1240.00"></label>
         <label class="k-supplier">QuickBooks vendor id<small>optional · filled automatically on first bill</small><input class="field-input" id="f-qbo"></label>
-        <label class="k-customer">Contact email<small>optional · who gets the reply</small><input class="field-input" id="f-email" placeholder="facilities@customer.example"></label>
+        <label class="k-customer">Contact email<small>optional · who gets the reply</small><input class="field-input" id="f-email" placeholder="facilities@customer.co.uk"></label>
         <label class="k-customer">HubSpot company id<small>optional · filled automatically on first ticket</small><input class="field-input" id="f-hs"></label>
         <div class="foot"><button class="btn primary" type="submit">Save</button><button class="btn" type="button" id="cancelBtn">Cancel</button><button class="btn" type="button" id="deleteBtn" style="margin-left:auto;color:var(--bad)" hidden>Delete</button><span class="result" id="formResult"></span></div>
       </form>
@@ -165,7 +165,7 @@ async function showHistory(p) {
     <span class="t"><a href="/#doc-${d.document_id}">${esc(d.ref || d.subject)}</a> <span class="chip c-${d.status}">${d.status}</span>${d.human ? ' <span class="chip human">human</span>' : ''}</span>
     <span class="mono">${d.amount ? money(d.amount) : ''}</span>
     <span class="r">${typeLabel(d.doc_type)} · ${esc(d.reason || '')}</span>
-    <span class="m">${new Date(d.received_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}${d.external.length ? ' · ' + esc(d.external.join(' · ')) : ''}</span>
+    <span class="m">${new Date(d.received_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}${d.external.length ? ' · ' + esc(d.external.map(x => { const [sys, id] = x.split(':'); return actionLabel({ system: sys, external_id: id }); }).join(' · ')) : ''}</span>
   </li>`).join('') || '<li class="empty">No documents from this party yet.</li>';
 }
 $('#newBtn').addEventListener('click', () => openDrawer(null));

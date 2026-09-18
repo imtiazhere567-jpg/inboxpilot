@@ -126,10 +126,10 @@ def dashboard(session: Session, tz_offset_minutes: int = 0) -> dict[str, Any]:
                 feed.append({"at": dec.at, "icon": icon, "kind": st, "document_id": d.id,
                              "text": f"{label} · {party}{money} · {(dec.output or {}).get('reason', '')}"})
         for a in d.actions:
-            sim = " (simulated)" if (a.result or {}).get("simulated") else ""
             err = f" · {a.error}" if a.error else ""
+            target = {"qbo": f"QuickBooks bill #{a.external_id}", "hubspot": f"HubSpot ticket #{a.external_id}", "slack": "Slack #ops-agent"}.get(a.system, a.system) if a.status == "ok" else a.system
             feed.append({"at": a.at, "icon": "→" if a.status == "ok" else "✗", "kind": "action" if a.status == "ok" else "failed",
-                         "document_id": d.id, "text": f"{label} → {a.system} {a.external_id or ''}{sim}{err}"})
+                         "document_id": d.id, "text": f"{label} → {target}{err}"})
         for n in d.review_notes:
             feed.append({"at": n.at, "icon": "👤", "kind": "human", "document_id": d.id, "text": f"{label} · {n.action} by {n.by}: {n.note}"})
     feed.sort(key=lambda f: f["at"], reverse=True)

@@ -104,14 +104,14 @@ def execute_actions(session: Session, doc: Document, rules: RuleSet | None = Non
             total = Decimal(str(ex.get("total") or "0"))
             a = _run(session, doc, "qbo", rules, {"vendor": party_name, "amount": str(total), "invoice_number": ex.get("invoice_number")},
                      lambda c: _qbo_bill(session, c, party, ex, total, email.subject or ""))
-            summary_ids.append(f"QBO bill {a.external_id}")
+            summary_ids.append(f"QuickBooks bill #{a.external_id}")
             _run(session, doc, "slack", rules, {"kind": "executed"},
                  lambda c: (c.post(f"✓ {ref} · {party_name} · {_money(total)} · {how} · {' · '.join(summary_ids)}"), {"posted": True}))
 
         elif doc.doc_type == "customer_dispute":
             a = _run(session, doc, "hubspot", rules, {"company": party_name, "subject": email.subject},
                      lambda c: _hubspot_ticket(session, c, party, doc, email.subject or "Customer dispute"))
-            summary_ids.append(f"HubSpot ticket {a.external_id}")
+            summary_ids.append(f"HubSpot ticket #{a.external_id}")
             amt = ex.get("requested_refund_amount")
             _run(session, doc, "slack", rules, {"kind": "executed"},
                  lambda c: (c.post(f"✓ dispute · {ref} · {party_name}{' · ' + _money(amt) if amt else ''} · {how} · {' · '.join(summary_ids)} · reply drafted (not sent)"), {"posted": True}))
@@ -175,7 +175,7 @@ def delete_external_objects(session: Session) -> dict[str, int]:
     """Reset helper: best-effort removal of everything previous runs created in the sandboxes."""
     counts = {"qbo": 0, "hubspot": 0, "slack": 0}
     for a in session.scalars(select(Action).where(Action.status == "ok")):
-        if not a.external_id or a.external_id.startswith("sim-"):
+        if not a.external_id or (a.result or {}).get("simulated"):
             continue
         try:
             _client(a.system).delete(a.external_id)

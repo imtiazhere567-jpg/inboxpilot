@@ -23,7 +23,9 @@ log = logging.getLogger("ops_agent.settings")
 
 # Settings fields a user may override from the UI, grouped for the page. (label, secret?)
 FIELDS: dict[str, list[tuple[str, str, bool]]] = {
-    "mode": [("app_mode", "Mode: demo (seeded inbox, auto reset) or live (your real inbox, no reset)", False)],
+    "mode": [("app_mode", "Mode: demo (seeded inbox, auto reset) or live (your real inbox, no reset)", False),
+             ("presentation_mode", "Presentation mode: hide demo / simulated / model badges (true or false)", False)],
+    "company": [("company_name", "Company name", False), ("company_email", "Operations inbox address", False), ("company_initials", "Initials for the sidebar mark", False)],
     "anthropic": [("anthropic_api_key", "Anthropic API key", True), ("claude_model_main", "Main model", False)],
     "gmail": [("gmail_address", "Gmail address", False), ("gmail_app_password", "Gmail app password", True),
               ("gmail_label_inbox", "Folder to watch", False)],
@@ -74,7 +76,10 @@ def apply_overrides(session: Session) -> dict[str, str]:
         object.__setattr__(s, "_env_snapshot", env_defaults)
     overrides = load_overrides(session)
     for k in ALLOWED:
-        setattr(s, k, overrides.get(k, env_defaults[k]))
+        val = overrides.get(k, env_defaults[k])
+        if k == "presentation_mode" and isinstance(val, str):
+            val = val.lower() in ("true", "1", "yes", "on")
+        setattr(s, k, val)
     return overrides
 
 
@@ -95,6 +100,8 @@ def save_settings(session: Session, values: dict[str, Any]) -> list[str]:
             continue
         if k == "app_mode" and v not in ("demo", "live"):
             raise ValueError("app_mode must be demo or live")
+        if k == "presentation_mode":
+            v = "true" if v.lower() in ("true", "1", "yes", "on") else "false"
         if k == "google_service_account_json" and v.startswith("{"):
             json.loads(v)  # validate
         if row is None:
@@ -123,7 +130,7 @@ def masked_view(session: Session) -> dict[str, Any]:
             rows.append({"key": key, "label": label, "secret": is_secret, "set": bool(val), "source": source, "value": shown,
                          "hint": (f"…{str(val)[-4:]}" if is_secret and val and len(str(val)) > 8 else "")})
         groups[group] = rows
-    return {"groups": groups, "configured": s.integrations_configured, "mode": s.app_mode}
+    return {"groups": groups, "configured": s.integrations_configured, "mode": s.app_mode, "presentation": bool(s.presentation_mode)}
 
 
 # --- connection tests ---------------------------------------------------------------------------------------------

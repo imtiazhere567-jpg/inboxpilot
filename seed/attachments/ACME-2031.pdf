@@ -43,7 +43,7 @@ endobj
 endobj
 8 0 obj
 <<
-/Length 2761
+/Length 2754
 >>
 stream
 1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
@@ -52,7 +52,7 @@ BT 1 0 0 1 56.69291 771.0236 Tm (Acme Supplies Ltd) Tj T* ET
 BT /F1 9 Tf 10.8 TL ET
 BT 1 0 0 1 56.69291 756.8504 Tm (12 Chemical Way) Tj T* ET
 BT 1 0 0 1 56.69291 742.6772 Tm (Avonmouth BS11 0AA) Tj T* ET
-BT 1 0 0 1 56.69291 728.5039 Tm (accounts@acmesupplies.example) Tj T* ET
+BT 1 0 0 1 56.69291 728.5039 Tm (accounts@acmesupplies.co.uk) Tj T* ET
 BT 1 0 0 1 56.69291 714.3307 Tm (VAT no. GB 111 1111 11) Tj T* ET
 BT /F2 22 Tf 26.4 TL ET
 BT 1 0 0 1 448.1187 771.0236 Tm (INVOICE) Tj T* ET
@@ -67,7 +67,7 @@ BT 1 0 0 1 56.69291 660.4724 Tm (Northwind Facilities Ltd) Tj T* ET
 BT 1 0 0 1 56.69291 646.2992 Tm (Unit 4, Harbourside Business Park) Tj T* ET
 BT 1 0 0 1 56.69291 632.126 Tm (Bristol BS1 6XX) Tj T* ET
 BT 1 0 0 1 56.69291 617.9528 Tm (United Kingdom) Tj T* ET
-BT 1 0 0 1 56.69291 603.7795 Tm (accounts@northwind-facilities.example) Tj T* ET
+BT 1 0 0 1 56.69291 603.7795 Tm (accounts@northwindfacilities.co.uk) Tj T* ET
 BT /F2 10 Tf 12 TL ET
 BT 1 0 0 1 56.69291 564.0945 Tm (Description) Tj T* ET
 BT 1 0 0 1 323.4875 564.0945 Tm (Qty) Tj T* ET
@@ -97,7 +97,7 @@ BT 1 0 0 1 356.5329 433.7008 Tm (TOTAL DUE) Tj T* ET
 BT 1 0 0 1 462.5387 433.7008 Tm (GBP 1,239.84) Tj T* ET
 BT /F1 9 Tf 10.8 TL ET
 BT 1 0 0 1 56.69291 382.6772 Tm (Payment by BACS to Acme Supplies Ltd \227 sort code 20-00-00, account ****4821. Please quote ACME-2031.) Tj T* ET
-BT 1 0 0 1 56.69291 368.5039 Tm (Payment terms: due 2026-10-01. Queries: accounts@acmesupplies.example) Tj T* ET
+BT 1 0 0 1 56.69291 368.5039 Tm (Payment terms: due 2026-10-01. Queries: accounts@acmesupplies.co.uk) Tj T* ET
  
 endstream
 endobj
@@ -123,5 +123,5 @@ trailer
 /Size 9
 >>
 startxref
-3738
+3731
 %%EOF

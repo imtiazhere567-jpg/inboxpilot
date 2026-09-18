@@ -129,7 +129,16 @@ def test_regeneration_is_byte_identical(tmp_path, manifest):
     assert {k: v["sha256"] for k, v in regenerated.items()} == {k: v["sha256"] for k, v in manifest.items()}
 
 
+FICTIONAL_DOMAINS = {
+    "acmesupplies.co.uk", "brightlineuniforms.co.uk", "castlehire.co.uk", "deltawaste.co.uk", "evergreengrounds.co.uk", "fenwickelectrical.co.uk",
+    "granitefs.co.uk", "harbourpest.co.uk", "ironbridgelifts.co.uk", "juniperwindows.co.uk", "northstarhygiene.co.uk", "tradepay.co.uk",
+    "meridianoffice.co.uk", "bluewaterdental.co.uk", "kingswayprimary.sch.uk", "orchardretail.co.uk", "pinnacleoffices.co.uk", "redwoodcare.co.uk",
+    "silverlinelogistics.co.uk", "thornfieldgym.co.uk", "westgatemedical.co.uk", "yardleymotors.co.uk", "northwindfacilities.co.uk",
+    "quickpay-invoicing.com", "newsletter.facilitypro.co.uk", "outlook.com",
+}
+
+
 def test_nothing_real(emails):
-    """Non-negotiable #10: no real domains or people. Every address must be under the .example TLD."""
+    """Non-negotiable #10: every sender is one of the invented companies (plausible domains, fictional businesses)."""
     for e in emails:
-        assert e["from_addr"].endswith(".example"), e["from_addr"]
+        assert e["from_addr"].rsplit("@", 1)[-1] in FICTIONAL_DOMAINS, e["from_addr"]

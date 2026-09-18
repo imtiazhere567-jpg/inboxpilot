@@ -16,8 +16,8 @@ log = logging.getLogger("ops_agent.parties")
 
 MODEL = {"supplier": Supplier, "customer": Customer}
 _PREFIX_RE = re.compile(r"\b([A-Z]{2,5})-\d{3,6}\b")
-_INTERNAL_DOMAINS = ("northwind-facilities.example",)
-_GENERIC_DOMAINS = ("gmail.com", "gmail.example", "outlook.com", "outlook.example", "hotmail.com", "yahoo.com", "icloud.com")
+_INTERNAL_DOMAINS = ("northwindfacilities.co.uk",)
+_GENERIC_DOMAINS = ("gmail.com", "googlemail.com", "outlook.com", "hotmail.com", "live.com", "yahoo.com", "yahoo.co.uk", "icloud.com", "btinternet.com")
 
 
 def _domain(addr: str) -> str:
@@ -26,7 +26,7 @@ def _domain(addr: str) -> str:
 
 def identifiers_from_emails(raw: list[str] | str) -> list[str]:
     """Turn email addresses into identifiers.
-    company address  accounts@acmesupplies.example -> acmesupplies.example  (any sender at that domain matches)
+    company address  accounts@acmesupplies.co.uk -> acmesupplies.co.uk  (any sender at that domain matches)
     generic mailbox  jas.patel@gmail.com          -> jas.patel@gmail.com   (only that exact address matches)
     a bare domain is accepted as-is."""
     items = raw if isinstance(raw, list) else re.split(r"[|,;\s]+", raw or "")
@@ -100,7 +100,7 @@ def upsert_party(session: Session, kind: str, data: dict[str, Any], party_id: in
         raise ValueError("name is required")
     patterns = _clean_patterns(data.get("identifier_patterns") or [], data.get("reference_prefix") or "")
     if not patterns:
-        raise ValueError("at least one email address is required (e.g. accounts@acmesupplies.example)")
+        raise ValueError("at least one email address is required (e.g. accounts@acmesupplies.co.uk)")
     obj = session.get(model, party_id) if party_id else None
     if party_id and obj is None:
         raise LookupError("no such party")

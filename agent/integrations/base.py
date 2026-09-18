@@ -31,5 +31,15 @@ _lock = threading.Lock()
 
 
 def simulated_id(system: str) -> str:
+    """Looks like the id the real system would hand back (bill number, ticket id, message ts) so the page reads naturally."""
+    import time
+
     with _lock:
-        return f"sim-{system}-{next(_counter)}"
+        n = next(_counter)
+    if system == "qbo":
+        return str(1180 + n)
+    if system == "hubspot":
+        return str(48210 + n)
+    if system == "slack":
+        return f"C04OPSAG:{time.time():.6f}"
+    return f"{system}-{n}"

@@ -46,8 +46,15 @@
         <label id="m-demo"><input type="radio" name="app_mode" value="demo"><span><b>Demo</b>Seeded inbox of 30 fictional emails. Resets when idle. Safe to share publicly.</span></label>
         <label id="m-live"><input type="radio" name="app_mode" value="live"><span><b>Live</b>Watches the Gmail inbox below every 30 s and processes real mail. No seeding, no reset. Keep this deployment private.</span></label>
       </div>
+      <div class="field" style="margin-top:14px;border-top:1px solid var(--line);padding-top:14px"><label>Presentation mode<small>hide demo, simulated and model badges on every page — for recordings and client walkthroughs</small></label><label style="display:flex;align-items:center;gap:8px;font-weight:600;cursor:pointer"><input type="checkbox" id="present"> On</label></div>
       <div class="foot"><button class="btn primary" data-save="mode" type="button">Save mode</button><span class="result" id="r-mode"></span></div>
     </div>
+  </section>
+
+  <section class="card" data-group="company">
+    <div class="head"><span>Company</span></div>
+    <div class="help">Shown in the sidebar and top bar. The operations inbox address is the one the agent watches.</div>
+    <div class="body"><div id="f-company"></div><div class="foot"><button class="btn primary" data-save="company" type="button">Save</button><span class="result" id="r-company"></span></div></div>
   </section>
 
   <div class="grid">
@@ -110,10 +117,12 @@ async function load() {
   for (const [g, rows] of Object.entries(v.groups)) {
     if (g === 'mode') continue;
     $('#f-' + g).innerHTML = rows.map(field).join('');
+    if (g === 'company') continue;
     const on = v.configured[g];
     $('#s-' + g).innerHTML = on && !(g === 'anthropic' && st.llm === 'fake') ? '<span class="chip c-executed">connected</span>' : '<span class="chip c-ignore">simulated</span>';
   }
   document.querySelectorAll('input[name=app_mode]').forEach(r => { r.checked = r.value === v.mode; });
+  $('#present').checked = !!v.presentation;
   $('#m-demo').classList.toggle('on', v.mode === 'demo'); $('#m-live').classList.toggle('on', v.mode === 'live');
   const b = $('#banner'); b.className = 'banner';
   if (v.mode === 'live' && !v.configured.gmail) { b.textContent = 'Live mode is on but Gmail is not connected — nothing will be processed until you save a Gmail address and app password.'; b.classList.add('show', 'warn'); }
@@ -124,7 +133,7 @@ document.addEventListener('click', async e => {
   const save = e.target.closest('[data-save]'), test = e.target.closest('[data-test]');
   if (save) {
     const g = save.dataset.save, out = {};
-    if (g === 'mode') out.app_mode = document.querySelector('input[name=app_mode]:checked').value;
+    if (g === 'mode') { out.app_mode = document.querySelector('input[name=app_mode]:checked').value; out.presentation_mode = $('#present').checked ? 'true' : 'false'; }
     else document.querySelectorAll(`#f-${g} [name]`).forEach(el => { out[el.name] = el.value; });
     const r = $('#r-' + g); r.textContent = 'saving…'; r.className = 'result';
     try { const res = await api('/api/settings', { method: 'POST', body: JSON.stringify({ values: out }) }); r.textContent = res.changed.length ? 'saved: ' + res.changed.join(', ') : 'nothing changed'; r.classList.add('ok'); toast('saved'); await load(); }

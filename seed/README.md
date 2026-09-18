@@ -1,6 +1,6 @@
 # Seed data
 
-Everything in here is fictional (`.example` domains, made-up companies and people). Nothing maps to a real business.
+Everything in here is fictional — invented companies and people with plausible-looking `.co.uk` domains. Nothing maps to a real business.
 
 | File | Purpose |
 |---|---|

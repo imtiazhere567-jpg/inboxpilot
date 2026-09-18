@@ -90,7 +90,7 @@
     <div><h1>Today's inbox</h1><div class="sub" id="sub"></div></div>
     <div class="actions controls">
       <label title="Evaluate everything, execute nothing"><input type="checkbox" id="shadow"><span class="switch" aria-hidden="true"></span>Shadow</label>
-      <label>Outage <select id="outage" aria-label="Simulate an outage"><option value="none">none</option><option value="qbo">QuickBooks</option><option value="hubspot">HubSpot</option><option value="slack">Slack</option></select></label>
+      <label id="outageWrap">Outage <select id="outage" aria-label="Simulate an outage"><option value="none">none</option><option value="qbo">QuickBooks</option><option value="hubspot">HubSpot</option><option value="slack">Slack</option></select></label>
       <button class="btn" id="resetBtn" type="button">Reset demo</button>
       <a class="btn cta" href="/ask"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 21l1.9-5.4A8 8 0 1 1 21 12z"/></svg>Ask the agent</a>
     </div>
@@ -110,7 +110,7 @@
   </div>
 
   <section class="card distcard">
-    <div class="top"><b id="distTitle">Where the documents went</b><span>this run · click a segment to filter the table</span></div>
+    <div class="top"><b id="distTitle">Where the documents went</b><span>this week · click a status to filter the table</span></div>
     <div class="dist" id="dist"></div>
     <div class="distlegend" id="distLegend"></div>
   </section>
@@ -151,25 +151,26 @@ async function load() {
   if (st.resetting) { b.textContent = 'Resetting demo…'; b.classList.add('show', 'info'); }
   else if (st.seeding) { b.textContent = `Seeding inbox ${st.seeding.done}/${st.seeding.total}…`; b.classList.add('show', 'info'); }
   else if (st.shadow_mode) { b.textContent = 'Shadow mode: the agent evaluates everything but executes nothing. Turn it off to post to QuickBooks / HubSpot / Slack.'; b.classList.add('show', 'info'); }
-  else if (st.llm === 'fake') { b.innerHTML = 'Running with the <b>fake model</b> (keyword stand-in). Add an Anthropic API key in <a href="/settings">Settings</a> to see Claude read, extract, verify and answer for real.'; b.classList.add('show', 'warn'); }
-  else if (st.last_error) { b.textContent = 'Last error: ' + st.last_error; b.classList.add('show', 'err'); }
+  else if (st.llm === 'fake' && !st.presentation) { b.innerHTML = 'Running with the <b>fake model</b> (keyword stand-in). Add an Anthropic API key in <a href="/settings">Settings</a> to see Claude read, extract, verify and answer for real.'; b.classList.add('show', 'warn'); }
+  else if (st.last_error && !st.presentation) { b.textContent = 'Last error: ' + st.last_error; b.classList.add('show', 'err'); }
   $('#shadow').checked = !!st.shadow_mode; $('#outage').value = st.simulate_outage || 'none';
   $('#resetBtn').disabled = !!(st.resetting || st.seeding) || st.app_mode === 'live';
-  $('#resetBtn').hidden = st.app_mode === 'live';
+  $('#resetBtn').hidden = st.app_mode === 'live' || !!st.presentation;
+  $('#outageWrap').hidden = !!st.presentation;
 
   const t = d.today, y = d.days[d.days.length - 2] || {}, today = d.days[d.days.length - 1] || {};
-  $('#sub').textContent = `${new Date(t.date + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })} · ${d.run.emails} emails in this run · ${d.run.documents} documents · updated ${new Date(d.snapshot_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`;
+  $('#sub').textContent = `${new Date(t.date + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })} · ${d.run.emails} emails this week · ${d.run.documents} documents · updated ${new Date(d.snapshot_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`;
   const share = t.documents ? Math.round(t.auto_executed / Math.max(1, t.documents - t.ignored) * 100) : 0;
   $('#kpis').innerHTML = `
     <div class="kpi"><small>Emails received</small><b>${t.emails}</b><div class="d">${delta(today.received, y.received)}</div></div>
     <div class="kpi"><small>Handled by the agent</small><b>${t.auto_executed}</b><div class="d"><em>${share}%</em> of today, no human touch</div></div>
     <div class="kpi hold"><small>Waiting for you</small><b>${t.held}</b><div class="d">${delta(today.held, y.held, false)}</div></div>
-    <div class="kpi ${t.failed ? 'bad' : ''}"><small>${t.failed ? 'Failed actions' : 'Model cost today'}</small><b>${t.failed ? t.failed : '$' + t.cost_usd.toFixed(3)}</b><div class="d">${t.failed ? 'retry from the table below' : '$' + d.run.cost_usd.toFixed(3) + ' this run · ~4 calls per document'}</div></div>`;
+    <div class="kpi ${t.failed ? 'bad' : ''}"><small>${t.failed ? 'Failed actions' : 'AI cost today'}</small><b>${t.failed ? t.failed : '$' + t.cost_usd.toFixed(3)}</b><div class="d">${t.failed ? 'retry from the table below' : '$' + d.run.cost_usd.toFixed(3) + ' this week · ~4 model calls per document'}</div></div>`;
 
   const waitingInv = items.filter(i => i.doc_type === 'supplier_invoice' && i.status === 'held').length;
   const [w, f] = d.run.invoices_total.toFixed(2).split('.');
   $('#bigTotal').innerHTML = `£${Number(w).toLocaleString('en-GB')}<span>.${f}</span>`;
-  $('#bigSub').innerHTML = `<em>${d.run.invoices}</em> invoices this run · ${waitingInv} waiting`;
+  $('#bigSub').innerHTML = `<em>${d.run.invoices}</em> invoices this week · ${waitingInv} waiting`;
   renderChart(d.days);
 
   $('#attN').textContent = d.attention_total + ' open';
@@ -234,7 +235,7 @@ function renderTable() {
     <td class="mono muted">${r.seed_no ?? r.document_id}</td>
     <td class="doc"><b>${esc(r.ref ? r.ref + ' ' + typeLabel(r.doc_type) : r.subject)}</b><small>${esc(r.filename === 'email-body.txt' ? 'email body' : r.filename)}</small></td>
     <td>${esc(r.party_name || r.from_addr)}</td>
-    <td>${chip(r.status)}${r.injection ? ' <span class="chip inj">injection blocked</span>' : ''}${r.human_override ? ' <span class="chip human">human</span>' : ''}${r.simulated ? ' <span class="chip sim">sim</span>' : ''}</td>
+    <td>${chip(r.status)}${r.injection ? ' <span class="chip inj">injection blocked</span>' : ''}${r.human_override ? ' <span class="chip human">human</span>' : ''}${r.simulated && !window.PRESENT ? ' <span class="chip sim">sim</span>' : ''}</td>
     <td class="mono">${r.amount ? money(r.amount) : '—'}</td>
     <td class="why">${esc(r.reason || '')}</td>
     <td class="mono muted">${new Date(r.received_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</td></tr>`).join('') || '<tr><td colspan="7" class="empty">Nothing here.</td></tr>';
@@ -271,7 +272,7 @@ async function loadReview(id, quiet) {
       <dt>party</dt><dd>${esc(it.party_name || '—')}${it.party_kind ? ' <span class="muted">(' + it.party_kind + ')</span>' : ''}</dd>
       <dt>confidence</dt><dd>${it.confidence != null ? it.confidence.toFixed(2) : '—'}</dd>
       ${it.duplicate_of ? `<dt>duplicate of</dt><dd><a href="#" onclick="openReview(${it.duplicate_of});return false">doc #${it.duplicate_of}</a></dd>` : ''}
-      <dt>model cost</dt><dd>$${(it.cost_usd||0).toFixed(4)}</dd>
+      <dt>AI cost</dt><dd>$${(it.cost_usd||0).toFixed(4)}</dd>
     </dl>
     ${noMatch ? `<div class="box addparty" id="addParty"><h4>Not on file</h4><div class="muted" style="margin-bottom:8px">This sender is not in the directory. Add them once and this item is processed again automatically.</div><button class="btn small primary" type="button" onclick="suggestParty(${it.document_id})">Add as ${/customer/.test(it.reason) ? 'customer' : 'supplier'} →</button></div>` : ''}
     ${(canDecide || canRetry) ? `<textarea id="note" placeholder="${canRetry ? 'Optional note' : 'Required: one line on why (recorded in the ledger)'}"></textarea>` : ''}
@@ -284,9 +285,9 @@ async function loadReview(id, quiet) {
     ${vr ? `<div class="box"><h4>Verifier — second model</h4><div class="verify ${vr.all_fields_present?'ok':'bad'}">${vr.all_fields_present ? '✓ every extracted value is literally present in the source' : '✗ unsupported: ' + esc((vr.missing_or_unsupported||[]).join(', '))}</div>${vr.notes ? `<div class="muted" style="margin-top:3px">${esc(vr.notes)}</div>` : ''}</div>` : ''}
     <div class="box"><h4>Source — what the agent read</h4><pre>${snippet}</pre></div>
     ${it.draft_reply ? `<div class="box"><h4>Draft reply — held with the ticket, never auto-sent</h4><pre>${esc(it.draft_reply)}</pre></div>` : ''}
-    ${it.actions.length ? `<div class="box"><h4>Downstream actions</h4>${it.actions.map(a => `<div class="actrow">${chip(a.status==='ok'?'executed':'failed')} <b>${a.system}</b> ${a.external_id ? esc(a.external_id) : ''} ${a.result && a.result.url ? `<a href="${esc(a.result.url)}" target="_blank" rel="noopener">open ↗</a>` : ''} ${a.result && a.result.simulated ? '<span class="chip sim">simulated</span>' : ''} ${a.error ? `<span style="color:var(--bad)">${esc(a.error)}</span>` : ''}</div>`).join('')}</div>` : ''}
+    ${it.actions.length ? `<div class="box"><h4>Where it went</h4>${it.actions.map(a => `<div class="actrow">${chip(a.status==='ok'?'executed':'failed')} <b>${a.status === 'ok' ? esc(actionLabel(a)) : a.system}</b> ${a.result && a.result.url ? `<a href="${esc(a.result.url)}" target="_blank" rel="noopener">open ↗</a>` : ''} ${a.result && a.result.simulated && !window.PRESENT ? '<span class="chip sim">simulated</span>' : ''} ${a.error ? `<span style="color:var(--bad)">${esc(a.error)}</span>` : ''}</div>`).join('')}</div>` : ''}
     ${d.notes && d.notes.length ? `<div class="box"><h4>Human notes</h4>${d.notes.map(n => `<div class="actrow"><b>${n.action}</b> ${esc(n.note)} <span class="muted">· ${n.by} · ${new Date(n.at).toLocaleTimeString('en-GB')}</span></div>`).join('')}</div>` : ''}
-    <div class="box"><h4>Timeline</h4><ul class="timeline">${it.timeline.map(t => `<li><b>${esc(t.step)}${t.model ? (t.model === 'fake' ? '<span class="chip sim">fake ai</span>' : '<span class="badge model">claude</span>') : ''}</b><span>${new Date(t.at).toLocaleTimeString('en-GB')}${t.duration_ms != null ? ' · ' + t.duration_ms + ' ms' : ''}${t.model && t.model !== 'fake' ? ' · ' + t.model : ''}</span></li>`).join('')}</ul></div>`;
+    <div class="box"><h4>Timeline</h4><ul class="timeline">${it.timeline.map(t => `<li><b>${esc(t.step)}${t.model ? (t.model === 'fake' ? (window.PRESENT ? '<span class="badge model">ai</span>' : '<span class="chip sim">fake ai</span>') : '<span class="badge model">claude</span>') : ''}</b><span>${new Date(t.at).toLocaleTimeString('en-GB')}${t.duration_ms != null ? ' · ' + t.duration_ms + ' ms' : ''}${t.model && t.model !== 'fake' ? ' · ' + t.model : ''}</span></li>`).join('')}</ul></div>`;
 }
 function highlight(text, ex) {
   const vals = Object.values(ex || {}).filter(v => typeof v === 'string' || typeof v === 'number').map(String).filter(v => v.length > 2).sort((a,b)=>b.length-a.length);

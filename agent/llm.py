@@ -322,7 +322,7 @@ def _fake_ask(question: str, ledger: dict[str, Any]) -> str:
     def money(v) -> str:
         return f"£{Decimal(str(v)):,.2f}" if v not in (None, "") else "—"
 
-    subset, scope = docs, "in this run"
+    subset, scope = docs, "this week"
     if any(k in q for k in ("today", "aaj", "aj ")):
         subset, scope = [d for d in docs if (d.get("received") or "")[:10] == today], "today"
     elif any(k in q for k in ("yesterday", "kal")):
@@ -359,7 +359,7 @@ def _fake_ask(question: str, ledger: dict[str, Any]) -> str:
                 "\n".join(f"• doc #{d['doc']} {d.get('party')} — {money(d.get('amount'))} — {d['status']}" for d in rows))
     if any(k in q for k in ("cost", "spend", "kharch", "token")):
         sm = ledger.get("summary", {})
-        return f"Model cost this run: ${sm.get('cost_usd', 0)} across {sm.get('documents', 0)} documents."
+        return f"AI cost this week: ${sm.get('cost_usd', 0)} across {sm.get('documents', 0)} documents."
     if any(k in q for k in ("how many", "kitn", "count", "total", "summary", "overview", "what happened", "status")):
         c: dict[str, int] = {}
         t: dict[str, int] = {}
@@ -368,8 +368,9 @@ def _fake_ask(question: str, ledger: dict[str, Any]) -> str:
             t[d["type"] or "?"] = t.get(d["type"] or "?", 0) + 1
         return (f"{len({d['seed'] for d in subset})} email(s) / {len(subset)} document(s) {scope}. By status: " +
                 ", ".join(f"{k} {v}" for k, v in sorted(c.items())) + ". By type: " + ", ".join(f"{k} {v}" for k, v in sorted(t.items())) + ".")
-    return ("I can answer questions about this ledger, e.g. 'how many invoices came in today', 'what is held and why', "
-            "'total from Acme', 'refunds requested', 'cost this run'. (Offline mode — add an Anthropic key for free-form answers.)")
+    tip = "" if get_settings().presentation_mode else " (Offline mode — add an Anthropic key for free-form answers.)"
+    return ("I can answer questions about this inbox, e.g. 'how many invoices came in today', 'what is held and why', "
+            "'total from Acme', 'refunds requested', 'cost this week'." + tip)
 
 
 def get_llm() -> LLM:

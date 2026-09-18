@@ -48,7 +48,7 @@ def test_invoice_executes_simulated_and_is_idempotent(session):
     assert doc.status == "executed"
     systems = sorted(a.system for a in doc.actions)
     assert systems == ["qbo", "slack"]
-    assert all(a.status == "ok" and a.external_id.startswith("sim-") and a.result["simulated"] for a in doc.actions)
+    assert all(a.status == "ok" and a.external_id and a.result["simulated"] for a in doc.actions)
     n = len(doc.actions)
     execute_actions(session, doc)  # replay
     session.commit()

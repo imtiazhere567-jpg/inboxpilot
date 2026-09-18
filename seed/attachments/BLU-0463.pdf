@@ -43,7 +43,7 @@ endobj
 endobj
 8 0 obj
 <<
-/Length 2559
+/Length 2550
 >>
 stream
 1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
@@ -52,7 +52,7 @@ BT 1 0 0 1 56.69291 771.0236 Tm (Brightline Uniforms Ltd) Tj T* ET
 BT /F1 9 Tf 10.8 TL ET
 BT 1 0 0 1 56.69291 756.8504 Tm (Mill Lane Trading Estate) Tj T* ET
 BT 1 0 0 1 56.69291 742.6772 Tm (Leeds LS9 8BB) Tj T* ET
-BT 1 0 0 1 56.69291 728.5039 Tm (billing@brightline-uniforms.example) Tj T* ET
+BT 1 0 0 1 56.69291 728.5039 Tm (billing@brightlineuniforms.co.uk) Tj T* ET
 BT 1 0 0 1 56.69291 714.3307 Tm (VAT no. GB 222 2222 22) Tj T* ET
 BT /F2 22 Tf 26.4 TL ET
 BT 1 0 0 1 448.1187 771.0236 Tm (INVOICE) Tj T* ET
@@ -67,7 +67,7 @@ BT 1 0 0 1 56.69291 660.4724 Tm (Northwind Facilities Ltd) Tj T* ET
 BT 1 0 0 1 56.69291 646.2992 Tm (Unit 4, Harbourside Business Park) Tj T* ET
 BT 1 0 0 1 56.69291 632.126 Tm (Bristol BS1 6XX) Tj T* ET
 BT 1 0 0 1 56.69291 617.9528 Tm (United Kingdom) Tj T* ET
-BT 1 0 0 1 56.69291 603.7795 Tm (accounts@northwind-facilities.example) Tj T* ET
+BT 1 0 0 1 56.69291 603.7795 Tm (accounts@northwindfacilities.co.uk) Tj T* ET
 BT /F2 10 Tf 12 TL ET
 BT 1 0 0 1 56.69291 564.0945 Tm (Description) Tj T* ET
 BT 1 0 0 1 323.4875 564.0945 Tm (Qty) Tj T* ET
@@ -93,7 +93,7 @@ BT 1 0 0 1 356.5329 453.5433 Tm (TOTAL DUE) Tj T* ET
 BT 1 0 0 1 472.5467 453.5433 Tm (GBP 701.95) Tj T* ET
 BT /F1 9 Tf 10.8 TL ET
 BT 1 0 0 1 56.69291 402.5197 Tm (Payment by BACS to Brightline Uniforms Ltd \227 sort code 20-00-01, account ****7730. Please quote BLU-0463.) Tj T* ET
-BT 1 0 0 1 56.69291 388.3465 Tm (Payment terms: due 2026-10-11. Queries: billing@brightline-uniforms.example) Tj T* ET
+BT 1 0 0 1 56.69291 388.3465 Tm (Payment terms: due 2026-10-11. Queries: billing@brightlineuniforms.co.uk) Tj T* ET
  
 endstream
 endobj
@@ -119,5 +119,5 @@ trailer
 /Size 9
 >>
 startxref
-3535
+3526
 %%EOF

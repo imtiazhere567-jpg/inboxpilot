@@ -25,13 +25,13 @@
   side.innerHTML = `<a class="brand" href="/">${I.logo}<span>Ops Agent</span></a>
     ${links.map(([k, href, label, ic]) => `<a class="nav ${k === page ? 'on' : ''}" href="${href}" ${k === page ? 'aria-current="page"' : ''}>${ic}<span>${label}</span>${k === 'dashboard' ? '<span class="cnt" id="navHeld" hidden title="waiting for a person"></span>' : ''}</a>`).join('')}
     <div class="foot">
-      <div class="ws"><span class="mark">NF</span><span><b>Northwind Facilities</b><small>ops@northwind-facilities.example</small></span></div>
+      <div class="ws"><span class="mark" id="navMark">NF</span><span><b id="navCompany">Northwind Facilities</b><small id="navEmail">ops@northwindfacilities.co.uk</small></span></div>
       <div class="badges" id="navBadges"></div>
       <a class="nav" href="/inside" ${page === 'inside' ? 'aria-current="page"' : ''}>${I.help}<span>Under the hood</span></a>
     </div>`;
   const content = document.createElement('div'); content.className = 'content';
   const top = document.createElement('header'); top.className = 'topbar';
-  top.innerHTML = `<span>Northwind Facilities</span><span class="sep">/</span><span class="crumb">${links.find(l => l[0] === page)?.[3] || ''}${title}</span>
+  top.innerHTML = `<span id="navCrumbCompany">Northwind Facilities</span><span class="sep">/</span><span class="crumb">${links.find(l => l[0] === page)?.[3] || ''}${title}</span>
     <div class="right"><span class="mono muted" id="navCountdown"></span>
       <button type="button" class="iconbtn" aria-label="Notifications" id="navBell">${I.bell}</button>
       <button type="button" class="iconbtn" aria-label="Account" style="width:auto;padding:0 6px 0 3px;gap:6px"><span class="avatar">IA</span>${I.chev}</button></div>`;
@@ -42,19 +42,27 @@
 
   window.renderNavStatus = function (s) {
     if (!s) return;
+    window.PRESENT = !!s.presentation;
     const fake = s.llm === 'fake';
+    if (s.company) {
+      const short = (s.company.name || '').replace(/\s+(Ltd|Limited|LLP|plc|Inc\.?)$/i, '');
+      const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+      set('navCompany', short); set('navCrumbCompany', short); set('navEmail', s.company.email || ''); set('navMark', s.company.initials || short.slice(0, 2).toUpperCase());
+    }
     const b = document.getElementById('navBadges');
-    if (b) b.innerHTML = `<span class="badge ${s.app_mode === 'live' ? 'live' : 'demo'}" title="${s.app_mode === 'live' ? 'processing your real inbox' : 'seeded inbox, resets when idle'}">${s.app_mode || 'demo'}</span>${s.shadow_mode ? '<span class="badge" style="background:#5B21B6;color:#fff">shadow</span>' : ''}<span class="badge ${fake ? 'fake' : 'model'}" title="${fake ? 'no Anthropic key — keyword stand-in' : 'Claude is live'}">${fake ? 'fake model' : s.llm}</span>`;
+    if (b) b.innerHTML = s.presentation
+      ? (s.shadow_mode ? '<span class="badge" style="background:#5B21B6;color:#fff">shadow mode</span>' : '<span class="badge live">agent active</span>')
+      : `<span class="badge ${s.app_mode === 'live' ? 'live' : 'demo'}" title="${s.app_mode === 'live' ? 'processing your real inbox' : 'seeded inbox, resets when idle'}">${s.app_mode || 'demo'}</span>${s.shadow_mode ? '<span class="badge" style="background:#5B21B6;color:#fff">shadow</span>' : ''}<span class="badge ${fake ? 'fake' : 'model'}" title="${fake ? 'no Anthropic key — keyword stand-in' : 'Claude is live'}">${fake ? 'fake model' : s.llm}</span>`;
     const held = document.getElementById('navHeld');
     if (held) { const n = (s.counts && (s.counts.held || 0) + (s.counts.failed || 0)) || 0; held.hidden = !n; held.textContent = n; }
     const el = document.getElementById('navCountdown');
     if (el) {
       clearInterval(window.__navTimer);
-      if (s.app_mode !== 'live' && s.seconds_to_reset != null) {
+      if (!s.presentation && s.app_mode !== 'live' && s.seconds_to_reset != null) {
         let secs = s.seconds_to_reset;
         const tick = () => { el.textContent = `next reset in ${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`; if (secs > 0) secs--; };
         tick(); window.__navTimer = setInterval(tick, 1000);
-      } else el.textContent = s.app_mode === 'live' ? 'live inbox' : '';
+      } else el.textContent = (s.presentation || s.app_mode === 'live') ? 'inbox watched every 30 s' : '';
     }
   };
   window.toast = function (msg, ms) { let t = document.getElementById('toast'); if (!t) { t = document.createElement('div'); t.id = 'toast'; t.className = 'toast'; document.body.appendChild(t); } t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), ms || 2200); };
@@ -68,4 +76,5 @@
   window.esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   window.money = v => (v == null || v === '') ? '—' : '£' + Number(v).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   window.ICONS = I;
+  window.actionLabel = (a) => ({ qbo: 'QuickBooks bill #' + (a.external_id || ''), hubspot: 'HubSpot ticket #' + (a.external_id || ''), slack: 'Slack #ops-agent' })[a.system] || a.system;
 })();
