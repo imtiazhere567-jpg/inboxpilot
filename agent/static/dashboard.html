@@ -111,7 +111,7 @@
   </div>
 
   <section class="card distcard">
-    <div class="top"><b id="distTitle">Where the documents went</b><span>this week · click a status to filter the table</span></div>
+    <div class="top"><b id="distTitle">Where the documents went</b><span>all time · click a status to filter the table below</span></div>
     <div class="dist" id="dist"></div>
     <div class="distlegend" id="distLegend"></div>
   </section>
@@ -120,6 +120,7 @@
     <div class="tabs" id="tabs">
       <button data-f="all" class="on" type="button">All documents</button><button data-f="held" type="button">Waiting</button><button data-f="handled" type="button">Handled</button><button data-f="human" type="button">Human decisions</button><button data-f="ignore" type="button">Ignored</button><button data-f="failed" type="button">Failed</button>
       <div class="tools">
+        <select id="period" aria-label="Time period" style="height:32px;border:1px solid var(--line-strong);border-radius:8px;padding:0 8px;background:#fff;font:inherit;font-size:12px;font-weight:700"><option value="all">All time</option><option value="today">Today</option><option value="7d">Last 7 days</option></select>
         <label class="search"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="search" id="q" placeholder="Search" aria-label="Search documents"></label>
         <a class="btn small" href="/ledger?format=csv"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>Export CSV</a>
       </div>
@@ -160,18 +161,18 @@ async function load() {
   $('#outageWrap').hidden = !!st.presentation;
 
   const t = d.today, y = d.days[d.days.length - 2] || {}, today = d.days[d.days.length - 1] || {};
-  $('#sub').textContent = `${new Date(t.date + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })} · ${d.run.emails} emails this week · ${d.run.documents} documents · updated ${new Date(d.snapshot_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`;
+  $('#sub').textContent = `${new Date(t.date + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })} · ${d.run.emails} emails and ${d.run.documents} documents in total · updated ${new Date(d.snapshot_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`;
   const share = t.documents ? Math.round(t.auto_executed / Math.max(1, t.documents - t.ignored) * 100) : 0;
   $('#kpis').innerHTML = `
     <div class="kpi"><small>Emails received</small><b>${t.emails}</b><div class="d">${delta(today.received, y.received)}</div></div>
     <div class="kpi"><small>Handled by the agent</small><b>${t.auto_executed}</b><div class="d"><em>${share}%</em> of today, no human touch</div></div>
     <div class="kpi hold"><small>Waiting for you</small><b>${t.held}</b><div class="d">${delta(today.held, y.held, false)}</div></div>
-    <div class="kpi ${t.failed ? 'bad' : ''}"><small>${t.failed ? 'Failed actions' : 'AI cost today'}</small><b>${t.failed ? t.failed : '$' + t.cost_usd.toFixed(3)}</b><div class="d">${t.failed ? 'retry from the table below' : '$' + d.run.cost_usd.toFixed(3) + ' this week · ~4 model calls per document'}</div></div>`;
+    <div class="kpi ${t.failed ? 'bad' : ''}"><small>${t.failed ? 'Failed actions' : 'AI cost today'}</small><b>${t.failed ? t.failed : '$' + t.cost_usd.toFixed(3)}</b><div class="d">${t.failed ? 'retry from the table below' : '$' + d.run.cost_usd.toFixed(3) + ' in total · ~4 model calls per document'}</div></div>`;
 
   const waitingInv = items.filter(i => i.doc_type === 'supplier_invoice' && i.status === 'held').length;
   const [w, f] = d.run.invoices_total.toFixed(2).split('.');
   $('#bigTotal').innerHTML = `£${Number(w).toLocaleString('en-GB')}<span>.${f}</span>`;
-  $('#bigSub').innerHTML = `<em>${d.run.invoices}</em> invoices this week · ${waitingInv} waiting`;
+  $('#bigSub').innerHTML = `<em>${d.run.invoices}</em> invoices in total · ${waitingInv} waiting`;
   renderChart(d.days);
 
   $('#attN').textContent = d.attention_total + ' open';
@@ -224,6 +225,12 @@ function setFilter(f) { filter = f; document.querySelectorAll('#tabs button[data
 function renderTable() {
   const q = ($('#q').value || '').toLowerCase();
   let rows = items;
+  const period = $('#period').value;
+  if (period !== 'all') {
+    const now = new Date(), start = new Date(now); start.setHours(0, 0, 0, 0);
+    if (period === '7d') start.setDate(start.getDate() - 6);
+    rows = rows.filter(r => new Date(r.received_at) >= start);
+  }
   if (filter === 'held') rows = rows.filter(r => r.status === 'held');
   else if (filter === 'handled') rows = rows.filter(r => ['executed', 'approved', 'auto_approved'].includes(r.status));
   else if (filter === 'human') rows = rows.filter(r => r.human_override);
@@ -246,6 +253,7 @@ $('#attention').addEventListener('click', e => { const b = e.target.closest('but
 $('#reviewAll').addEventListener('click', () => { setFilter('held'); $('#tableCard').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
 $('#tabs').addEventListener('click', e => { const b = e.target.closest('button[data-f]'); if (b) setFilter(b.dataset.f); });
 $('#q').addEventListener('input', renderTable);
+$('#period').addEventListener('change', renderTable);
 
 // --- review drawer -----------------------------------------------------------------------------------
 function openReview(id) { sel = id; renderTable(); $('#drawer').classList.add('open'); $('#scrim').classList.add('open'); history.replaceState(null, '', '#doc-' + id); loadReview(id); }
