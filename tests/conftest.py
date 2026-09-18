@@ -5,6 +5,9 @@ import os
 
 os.environ.setdefault("APP_ENV", "test")
 os.environ.setdefault("SCHEDULER_ENABLED", "false")
+os.environ.setdefault("SEED_DELAY_SECONDS", "0")
+os.environ.setdefault("RESET_TOKEN", "test-token")
+os.environ["DEMO_PASSWORD"] = ""
 if os.environ.get("RUN_REAL_LLM") != "1":
     os.environ["LLM_FAKE"] = "true"
 

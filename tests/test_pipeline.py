@@ -19,7 +19,15 @@ from agent.models import Decision, Document, Email
 from agent.pipeline.process import handle_inbound, party_name
 from agent.seed_loader import read_seed_emails, to_inbound
 
-SCORECARD = Path(__file__).resolve().parent.parent / "docs" / "scorecard.json"
+
+@pytest.fixture(scope="module", autouse=True)
+def _fresh_state(db):
+    """Each DB test module starts from an empty demo state (master data kept)."""
+    from agent.db import reset_for_tests
+
+    reset_for_tests(db)
+
+SCORECARD = Path(__file__).resolve().parent.parent / "agent" / "static" / "scorecard.json"
 RUN_TAG = datetime.now(timezone.utc).strftime("t%H%M%S")
 
 

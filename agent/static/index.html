@@ -4,25 +4,273 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Ops Agent — review queue</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  body{font-family:system-ui,sans-serif;margin:0;padding:2rem;background:#f6f7f9;color:#1a1a1a}
-  .card{max-width:640px;margin:10vh auto;background:#fff;border:1px solid #e3e5e8;border-radius:12px;padding:2rem}
-  code{background:#eef;padding:.1em .4em;border-radius:4px}
-  .ok{color:#0a7a2f}.bad{color:#b00020}
+  :root{--blue:#1F4FD8;--orange:#E8620C;--ink:#14161a;--muted:#6b7280;--line:#e5e7eb;--bg:#f6f7f9;--card:#fff;
+        --ok:#0a7a2f;--okbg:#e6f4ea;--hold:#8a5a00;--holdbg:#fff4d6;--bad:#b00020;--badbg:#fde8ea;--grey:#4b5563;--greybg:#eef0f3;
+        --shadow:#5b21b6;--shadowbg:#efe7fb;--mono:"IBM Plex Mono",ui-monospace,Menlo,monospace}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Manrope,system-ui,sans-serif;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.45}
+  a{color:var(--blue)}
+  header{background:var(--card);border-bottom:1px solid var(--line);padding:.8rem 1.2rem;display:flex;flex-wrap:wrap;gap:.8rem 1.4rem;align-items:center;position:sticky;top:0;z-index:5}
+  header h1{margin:0;font-size:1.05rem;font-weight:800;letter-spacing:-.01em}
+  header h1 span{color:var(--muted);font-weight:600}
+  .tiles{display:flex;gap:.6rem;flex-wrap:wrap}
+  .tile{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:.35rem .6rem;min-width:84px}
+  .tile b{display:block;font-family:var(--mono);font-size:1rem;font-weight:600}
+  .tile small{color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.04em}
+  .controls{margin-left:auto;display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
+  .controls label{display:flex;align-items:center;gap:.35rem;font-weight:600;color:var(--grey)}
+  select,button.btn{font:inherit;font-weight:700;border:1px solid var(--line);background:#fff;border-radius:8px;padding:.4rem .7rem;cursor:pointer}
+  button.btn.primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+  button.btn.warn{background:var(--orange);color:#fff;border-color:var(--orange)}
+  button.btn:disabled{opacity:.5;cursor:not-allowed}
+  .countdown{font-family:var(--mono);color:var(--muted)}
+  .banner{background:var(--holdbg);color:var(--hold);padding:.45rem 1.2rem;font-weight:600;display:none}
+  .banner.show{display:block}
+  .banner.err{background:var(--badbg);color:var(--bad)}
+  main{display:grid;grid-template-columns:minmax(300px,1.05fr) minmax(340px,1.35fr) minmax(320px,1.2fr);gap:1rem;padding:1rem 1.2rem;align-items:start}
+  @media (max-width:1100px){main{grid-template-columns:1fr 1fr}.col-ledger{grid-column:1/-1}}
+  @media (max-width:720px){main{grid-template-columns:1fr}}
+  section{background:var(--card);border:1px solid var(--line);border-radius:12px;min-height:200px;display:flex;flex-direction:column;max-height:calc(100vh - 140px)}
+  section h2{margin:0;padding:.7rem .9rem;border-bottom:1px solid var(--line);font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);display:flex;align-items:center;gap:.5rem}
+  section h2 .n{margin-left:auto;font-family:var(--mono);font-weight:500;text-transform:none;letter-spacing:0}
+  .scroll{overflow:auto;flex:1}
+  /* inbox */
+  .item{padding:.6rem .9rem;border-bottom:1px solid var(--line);cursor:pointer;display:grid;grid-template-columns:auto 1fr auto;gap:.2rem .6rem;align-items:center}
+  .item:hover{background:#fafbfc}.item.sel{background:#eef2fd;box-shadow:inset 3px 0 0 var(--blue)}
+  .item .seed{font-family:var(--mono);color:var(--muted);font-size:.75rem;width:2.2em}
+  .item .subj{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .item .meta{grid-column:2;color:var(--muted);font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .item .meta .file{font-family:var(--mono)}
+  .chip{display:inline-block;font-size:.7rem;font-weight:700;padding:.12rem .45rem;border-radius:999px;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+  .c-auto,.c-auto_approved,.c-executed,.c-approved{background:var(--okbg);color:var(--ok)}
+  .c-held{background:var(--holdbg);color:var(--hold)}
+  .c-failed,.c-rejected{background:var(--badbg);color:var(--bad)}
+  .c-ignore,.c-received{background:var(--greybg);color:var(--grey)}
+  .c-shadow{background:var(--shadowbg);color:var(--shadow)}
+  .chip.inj{background:#14161a;color:#fff}
+  .chip.sim{background:#fff;border:1px dashed var(--muted);color:var(--muted)}
+  .chip.human{background:#e0e7ff;color:#3730a3}
+  /* review */
+  .review{padding:.9rem}
+  .review .empty{color:var(--muted);padding:2rem 1rem;text-align:center}
+  .kv{display:grid;grid-template-columns:120px 1fr;gap:.25rem .8rem;font-size:.85rem;margin:.6rem 0}
+  .kv dt{color:var(--muted)}.kv dd{margin:0;font-family:var(--mono);word-break:break-word}
+  .reason{background:var(--holdbg);color:var(--hold);border-radius:8px;padding:.6rem .8rem;font-weight:600;margin:.6rem 0}
+  .reason.ok{background:var(--okbg);color:var(--ok)}.reason.bad{background:var(--badbg);color:var(--bad)}.reason.grey{background:var(--greybg);color:var(--grey)}.reason.shadow{background:var(--shadowbg);color:var(--shadow)}
+  .box{border:1px solid var(--line);border-radius:8px;padding:.6rem .8rem;margin:.6rem 0;font-size:.82rem}
+  .box h4{margin:0 0 .35rem;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+  pre{margin:0;white-space:pre-wrap;font-family:var(--mono);font-size:.78rem;line-height:1.4;max-height:220px;overflow:auto}
+  mark{background:#fff3bf;padding:0 .1em}
+  .verify.ok{color:var(--ok)}.verify.bad{color:var(--bad)}
+  .actions{display:flex;gap:.5rem;margin-top:.8rem;flex-wrap:wrap}
+  textarea{width:100%;font:inherit;border:1px solid var(--line);border-radius:8px;padding:.5rem;min-height:56px;margin-top:.5rem}
+  .timeline{list-style:none;margin:.3rem 0 0;padding:0;font-family:var(--mono);font-size:.76rem}
+  .timeline li{display:flex;gap:.6rem;padding:.12rem 0;border-left:2px solid var(--line);padding-left:.6rem}
+  .timeline li b{min-width:9.5em;font-weight:500}
+  .timeline li span{color:var(--muted)}
+  .actrow{display:flex;gap:.5rem;align-items:center;font-family:var(--mono);font-size:.78rem;padding:.15rem 0}
+  /* ledger */
+  .ltools{display:flex;gap:.4rem;padding:.5rem .9rem;border-bottom:1px solid var(--line);flex-wrap:wrap;align-items:center}
+  .ltools button{font:inherit;font-size:.78rem;border:1px solid var(--line);background:#fff;border-radius:999px;padding:.2rem .6rem;cursor:pointer}
+  .ltools button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .ltools a{margin-left:auto;font-size:.78rem;font-weight:700}
+  table{width:100%;border-collapse:collapse;font-size:.78rem}
+  th,td{padding:.4rem .6rem;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+  th{position:sticky;top:0;background:#fff;color:var(--muted);font-size:.68rem;text-transform:uppercase;letter-spacing:.05em}
+  td.mono{font-family:var(--mono)}
+  tr.click{cursor:pointer}tr.click:hover{background:#fafbfc}
+  footer{padding:.8rem 1.2rem 1.4rem;color:var(--muted);font-size:.78rem;display:flex;gap:1rem;flex-wrap:wrap}
+  footer a{margin-left:auto}
+  .toast{position:fixed;bottom:1rem;right:1rem;background:var(--ink);color:#fff;padding:.6rem .9rem;border-radius:8px;font-weight:600;opacity:0;transition:opacity .2s;pointer-events:none}
+  .toast.show{opacity:1}
 </style>
 </head>
 <body>
-<div class="card">
-  <h1>Ops Agent — invoices &amp; disputes</h1>
-  <p>Phase 0 skeleton. The review queue page arrives in Phase 4.</p>
-  <p id="health">Checking <code>/health</code>…</p>
-</div>
+<header>
+  <h1>Ops Agent <span>· invoices &amp; disputes</span></h1>
+  <div class="tiles" id="tiles"></div>
+  <div class="controls">
+    <label><input type="checkbox" id="shadow"> Shadow mode</label>
+    <label>Outage <select id="outage"><option value="none">none</option><option value="qbo">QuickBooks</option><option value="hubspot">HubSpot</option><option value="slack">Slack</option></select></label>
+    <span class="countdown" id="countdown">—</span>
+    <button class="btn warn" id="resetBtn">Reset demo</button>
+    <a class="btn" href="/inside" style="text-decoration:none">Under the hood</a>
+  </div>
+</header>
+<div class="banner" id="banner"></div>
+<main>
+  <section class="col-inbox">
+    <h2>Inbox stream <span class="n" id="inboxN"></span></h2>
+    <div class="scroll" id="inbox"></div>
+  </section>
+  <section class="col-review">
+    <h2>Review <span class="n" id="reviewN"></span></h2>
+    <div class="scroll review" id="review"><div class="empty">Select an item. Held items show why the agent stopped and let you approve or reject.</div></div>
+  </section>
+  <section class="col-ledger">
+    <h2>Ledger <span class="n" id="ledgerN"></span></h2>
+    <div class="ltools">
+      <button data-f="all" class="on">All</button><button data-f="held">Held</button><button data-f="executed">Executed</button><button data-f="failed">Failed</button><button data-f="overrides">Human overrides</button>
+      <a href="/ledger?format=csv">Download CSV</a>
+    </div>
+    <div class="scroll"><table><thead><tr><th>#</th><th>Document</th><th>Party</th><th>Type</th><th>Status</th><th>Reason / refs</th><th>Cost</th></tr></thead><tbody id="ledger"></tbody></table></div>
+  </section>
+</main>
+<footer>
+  <span>Seeded demo data — resets when idle. No real company, customer, invoice or person.</span>
+  <span id="snap"></span>
+  <a href="/inside">How it works →</a>
+</footer>
+<div class="toast" id="toast"></div>
+
 <script>
-fetch('/health').then(r=>r.json()).then(h=>{
-  const el=document.getElementById('health');
-  const ints=Object.entries(h.integrations).map(([k,v])=>`${k}: <span class="${v?'ok':'bad'}">${v?'configured':'missing'}</span>`).join(' · ');
-  el.innerHTML=`Service <b class="${h.status==='ok'?'ok':'bad'}">${h.status}</b> · v${h.version} · env ${h.env} · database <span class="${h.database?'ok':'bad'}">${h.database?'connected':'unreachable'}</span><br><small>${ints}</small>`;
-}).catch(()=>{document.getElementById('health').textContent='/health unreachable'});
+const $ = s => document.querySelector(s);
+const state = { items: [], status: null, sel: null, filter: 'all', secs: null };
+const fmtMoney = v => v == null ? '' : '£' + Number(v).toLocaleString('en-GB', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+const chipLabel = s => ({auto_approved:'Auto', executed:'Executed', held:'Held', approved:'Approved', rejected:'Rejected', failed:'Failed', ignore:'Ignored', shadow:'Shadow', received:'Received'})[s] || s;
+const chip = (s, extra='') => `<span class="chip c-${s} ${extra}">${chipLabel(s)}</span>`;
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const typeLabel = t => ({supplier_invoice:'invoice', customer_dispute:'dispute', remittance:'remittance', credit_note:'credit note', ignore:'ignore', unknown:'unknown'})[t] || (t || '—');
+function toast(msg, ms=2200){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), ms); }
+
+async function api(path, opts={}) {
+  const r = await fetch(path, {headers:{'content-type':'application/json'}, ...opts});
+  if (r.status === 401) { location.href = '/login'; throw new Error('login'); }
+  const j = await r.json().catch(()=>({}));
+  if (!r.ok) throw new Error(j.detail || r.statusText);
+  return j;
+}
+
+async function load() {
+  const [st, q] = await Promise.all([api('/status'), api('/queue')]);
+  state.status = st; state.items = q.items; state.secs = st.seconds_to_reset;
+  renderHeader(); renderInbox(); renderLedger();
+  if (state.sel) loadReview(state.sel, true);
+}
+
+function renderHeader() {
+  const s = state.status, c = s.counts || {};
+  const executed = (c.executed||0), auto = executed + (c.auto_approved||0), held = (c.held||0), failed=(c.failed||0), ignored=(c.ignore||0);
+  $('#tiles').innerHTML = [
+    ['emails', s.emails], ['auto', auto], ['held', held], ['failed', failed], ['ignored', ignored],
+    ['agent time', s.agent_seconds + 's'], ['manual est.', s.estimated_manual_minutes + ' min'], ['cost this run', '$' + (s.cost_usd||0).toFixed(3)],
+  ].map(([k,v]) => `<div class="tile"><b>${v ?? 0}</b><small>${k}</small></div>`).join('');
+  $('#shadow').checked = !!s.shadow_mode;
+  $('#outage').value = s.simulate_outage || 'none';
+  $('#snap').textContent = 'snapshot ' + new Date(s.snapshot_at).toLocaleTimeString('en-GB') + ' · model ' + s.llm + (s.mode==='shadow' ? ' · SHADOW MODE' : '');
+  const b = $('#banner'); b.className = 'banner';
+  if (s.resetting) { b.textContent = 'Resetting demo — clearing previous run…'; b.classList.add('show'); }
+  else if (s.seeding) { b.textContent = `Seeding inbox ${s.seeding.done}/${s.seeding.total} (${s.seeding.mode})…`; b.classList.add('show'); }
+  else if (s.shadow_mode) { b.textContent = 'Shadow mode: the agent evaluates everything but executes nothing. Turn it off to post to QuickBooks / HubSpot / Slack.'; b.classList.add('show'); }
+  else if (s.last_error) { b.textContent = 'Last error: ' + s.last_error; b.classList.add('show','err'); }
+  $('#resetBtn').disabled = !!(s.resetting || s.seeding);
+}
+
+function tick() {
+  if (state.secs == null) { $('#countdown').textContent = 'no reset scheduled'; return; }
+  const m = Math.floor(state.secs/60), sec = state.secs%60;
+  $('#countdown').textContent = `next reset in ${m}:${String(sec).padStart(2,'0')}` + (state.status && state.status.reset_idle_minutes ? ` (if idle ${state.status.reset_idle_minutes}m)` : '');
+  if (state.secs > 0) state.secs--;
+}
+setInterval(tick, 1000);
+
+function renderInbox() {
+  const items = state.items;
+  $('#inboxN').textContent = items.length + ' documents';
+  $('#inbox').innerHTML = items.map(it => `
+    <div class="item ${state.sel===it.document_id?'sel':''}" data-id="${it.document_id}" id="doc-${it.document_id}">
+      <span class="seed">#${it.seed_no ?? '·'}</span>
+      <span class="subj" title="${esc(it.subject)}">${esc(it.subject)}</span>
+      <span>${chip(it.status)}${it.injection ? ' <span class="chip inj" title="instruction-like content detected and ignored">injection blocked</span>' : ''}${it.human_override ? ' <span class="chip human">human</span>' : ''}${it.simulated ? ' <span class="chip sim" title="downstream system not configured — action simulated">sim</span>' : ''}</span>
+      <span class="meta"><span class="file">${esc(it.filename)}</span> · ${esc(it.party_name || it.from_addr)} · ${typeLabel(it.doc_type)}${it.amount ? ' · ' + fmtMoney(it.amount) : ''}${it.ref ? ' · ' + esc(it.ref) : ''}</span>
+    </div>`).join('') || '<div class="empty" style="padding:2rem;color:#6b7280;text-align:center">No emails yet — press Reset demo.</div>';
+}
+$('#inbox').addEventListener('click', e => { const el = e.target.closest('.item'); if (el) select(+el.dataset.id); });
+
+function select(id) { state.sel = id; renderInbox(); loadReview(id); location.hash = 'doc-' + id; }
+
+async function loadReview(id, quiet) {
+  let d; try { d = await api('/review/' + id); } catch (e) { if (!quiet) toast(e.message); return; }
+  const it = d.item, ex = it.extracted || {}, vr = it.verify_result;
+  $('#reviewN').textContent = '#' + (it.seed_no ?? '') + ' · doc ' + it.document_id;
+  const reasonClass = {executed:'ok', auto_approved:'ok', approved:'ok', failed:'bad', rejected:'bad', ignore:'grey', shadow:'shadow'}[it.status] || '';
+  const snippet = highlight(esc(it.source_snippet || d.email_body || ''), ex);
+  const extractedRows = Object.entries(ex).filter(([k,v]) => v !== null && v !== '' && !(Array.isArray(v) && !v.length)).map(([k,v]) =>
+    `<dt>${esc(k)}</dt><dd>${Array.isArray(v) ? esc(v.map(x => typeof x === 'object' ? (x.description + ' ' + (x.amount ?? '')) : x).join('; ')) : esc(v)}</dd>`).join('');
+  const rulesDec = (d.decisions || []).filter(x => x.step === 'rules').pop();
+  const triggered = rulesDec && rulesDec.output && rulesDec.output.triggered_rules ? rulesDec.output.triggered_rules.join(', ') : '';
+  const canDecide = ['held','shadow'].includes(it.status), canRetry = it.status === 'failed', canReject = ['held','shadow','failed'].includes(it.status);
+  $('#review').innerHTML = `
+    <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap"><strong style="font-size:1rem">${esc(it.subject)}</strong> ${chip(it.status)}</div>
+    <div style="color:#6b7280;font-size:.82rem;margin-top:.2rem">from <span style="font-family:var(--mono)">${esc(it.from_addr)}</span> · <span style="font-family:var(--mono)">${esc(it.filename)}</span></div>
+    <div class="reason ${reasonClass}">${esc(it.reason || '—')}${triggered ? `<div style="font-weight:500;font-size:.75rem;margin-top:.25rem;opacity:.8">rules: ${esc(triggered)}</div>` : ''}</div>
+    <dl class="kv">
+      <dt>type</dt><dd>${typeLabel(it.doc_type)}</dd>
+      <dt>party</dt><dd>${esc(it.party_name || '—')}${it.party_kind ? ' <span style="color:#6b7280">(' + it.party_kind + ')</span>' : ''}</dd>
+      <dt>confidence</dt><dd>${it.confidence != null ? it.confidence.toFixed(2) : '—'}</dd>
+      ${it.duplicate_of ? `<dt>duplicate of</dt><dd><a href="#" onclick="select(${it.duplicate_of});return false">doc #${it.duplicate_of}</a></dd>` : ''}
+      <dt>cost</dt><dd>$${(it.cost_usd||0).toFixed(4)}</dd>
+    </dl>
+    ${extractedRows ? `<div class="box"><h4>Extracted</h4><dl class="kv" style="margin:0">${extractedRows}</dl></div>` : ''}
+    ${vr ? `<div class="box"><h4>Verifier (second model)</h4><div class="verify ${vr.all_fields_present?'ok':'bad'}">${vr.all_fields_present ? '✓ every extracted value is literally present in the source' : '✗ unsupported: ' + esc((vr.missing_or_unsupported||[]).join(', '))}</div>${vr.notes ? `<div style="color:#6b7280;margin-top:.2rem">${esc(vr.notes)}</div>` : ''}</div>` : ''}
+    <div class="box"><h4>Source (what the agent read)</h4><pre>${snippet}</pre></div>
+    ${it.draft_reply ? `<div class="box"><h4>Draft reply — held with the ticket, never auto-sent</h4><pre>${esc(it.draft_reply)}</pre></div>` : ''}
+    ${it.actions.length ? `<div class="box"><h4>Downstream actions</h4>${it.actions.map(a => `<div class="actrow">${chip(a.status==='ok'?'executed':'failed')} <b>${a.system}</b> ${a.external_id ? esc(a.external_id) : ''} ${a.result && a.result.url ? `<a href="${esc(a.result.url)}" target="_blank" rel="noopener">open ↗</a>` : ''} ${a.result && a.result.simulated ? '<span class="chip sim">simulated</span>' : ''} ${a.error ? `<span style="color:#b00020">${esc(a.error)}</span>` : ''}</div>`).join('')}</div>` : ''}
+    ${(canDecide || canRetry) ? `<textarea id="note" placeholder="${canRetry ? 'Optional note' : 'Required: one line on why (recorded in the ledger)'}"></textarea>` : ''}
+    <div class="actions">
+      ${canDecide ? `<button class="btn primary" onclick="decide(${it.document_id},'approve')">Approve → execute</button>` : ''}
+      ${canReject ? `<button class="btn" onclick="decide(${it.document_id},'reject')">Reject</button>` : ''}
+      ${canRetry ? `<button class="btn warn" onclick="retry(${it.document_id})">Retry failed action</button>` : ''}
+    </div>
+    ${d.notes && d.notes.length ? `<div class="box"><h4>Human notes</h4>${d.notes.map(n => `<div class="actrow"><b>${n.action}</b> ${esc(n.note)} <span style="color:#6b7280">· ${n.by} · ${new Date(n.at).toLocaleTimeString('en-GB')}</span></div>`).join('')}</div>` : ''}
+    <div class="box"><h4>Timeline</h4><ul class="timeline">${it.timeline.map(t => `<li><b>${esc(t.step)}</b><span>${new Date(t.at).toLocaleTimeString('en-GB')}${t.duration_ms != null ? ' · ' + t.duration_ms + ' ms' : ''}${t.model ? ' · ' + t.model : ''}</span></li>`).join('')}</ul></div>`;
+}
+
+function highlight(text, ex) {
+  const vals = Object.values(ex || {}).filter(v => typeof v === 'string' || typeof v === 'number').map(String).filter(v => v.length > 2).sort((a,b)=>b.length-a.length);
+  for (const v of vals) {
+    const alt = [v, Number(v) ? Number(v).toLocaleString('en-GB',{minimumFractionDigits:2}) : null].filter(Boolean);
+    for (const a of alt) { const re = new RegExp(a.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), 'g'); text = text.replace(re, m => `<mark>${m}</mark>`); }
+  }
+  return text;
+}
+
+async function decide(id, action) {
+  const note = ($('#note') ? $('#note').value.trim() : '');
+  if (note.length < 3) { toast('Please write a short note first'); $('#note').focus(); return; }
+  try { const r = await api(`/${action}/${id}`, {method:'POST', body: JSON.stringify({note, by:'demo'})}); toast(`${action}d → ${r.status}`); await load(); }
+  catch (e) { toast(e.message); }
+}
+async function retry(id) { try { const r = await api(`/retry/${id}`, {method:'POST'}); toast('retry → ' + r.status); await load(); } catch (e) { toast(e.message); } }
+
+function renderLedger() {
+  let rows = state.items;
+  if (state.filter === 'held') rows = rows.filter(r => r.status === 'held');
+  else if (state.filter === 'executed') rows = rows.filter(r => ['executed','approved','auto_approved'].includes(r.status));
+  else if (state.filter === 'failed') rows = rows.filter(r => r.status === 'failed');
+  else if (state.filter === 'overrides') rows = rows.filter(r => r.human_override);
+  $('#ledgerN').textContent = rows.length + ' rows';
+  $('#ledger').innerHTML = rows.map(r => `<tr class="click" data-id="${r.document_id}">
+    <td class="mono">${r.seed_no ?? r.document_id}</td><td class="mono">${esc(r.filename)}</td><td>${esc(r.party_name || '—')}</td><td>${typeLabel(r.doc_type)}</td>
+    <td>${chip(r.status)}${r.human_override ? ' <span class="chip human">human</span>' : ''}</td><td>${esc(r.reason || '')}</td><td class="mono">$${(r.cost_usd||0).toFixed(3)}</td></tr>`).join('');
+}
+$('#ledger').addEventListener('click', e => { const tr = e.target.closest('tr'); if (tr) select(+tr.dataset.id); });
+document.querySelectorAll('.ltools button').forEach(b => b.addEventListener('click', () => { document.querySelectorAll('.ltools button').forEach(x => x.classList.remove('on')); b.classList.add('on'); state.filter = b.dataset.f; renderLedger(); }));
+
+$('#shadow').addEventListener('change', async e => { try { await api('/shadow', {method:'POST', body: JSON.stringify({enabled: e.target.checked})}); toast('shadow mode ' + (e.target.checked ? 'on' : 'off')); await load(); } catch (err) { toast(err.message); } });
+$('#outage').addEventListener('change', async e => { try { await api('/outage', {method:'POST', body: JSON.stringify({system: e.target.value})}); toast('outage: ' + e.target.value); await load(); } catch (err) { toast(err.message); } });
+$('#resetBtn').addEventListener('click', async () => { if (!confirm('Wipe the current run and replay the 30 seed emails?')) return; try { await api('/reset', {method:'POST'}); toast('reset started'); state.sel = null; $('#review').innerHTML = '<div class="empty">Resetting…</div>'; setTimeout(load, 800); } catch (e) { toast(e.message); } });
+
+function connect() {
+  const es = new EventSource('/events');
+  es.addEventListener('changed', () => load().catch(()=>{}));
+  es.onerror = () => { es.close(); setTimeout(connect, 3000); };
+}
+load().then(() => { const m = location.hash.match(/doc-(\d+)/); if (m) select(+m[1]); }).catch(e => toast(e.message));
+connect();
 </script>
 </body>
 </html>

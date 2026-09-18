@@ -12,13 +12,6 @@ def test_health_shape(client):
     assert isinstance(body["database"], bool)
 
 
-def test_stubs_return_501(client):
-    for path in ("/status", "/queue", "/ledger", "/events", "/review/1"):
-        assert client.get(path).status_code == 501, path
-    for path in ("/approve/1", "/reject/1", "/retry/1", "/inject", "/reset"):
-        assert client.post(path).status_code == 501, path
-
-
 def test_index_serves_html(client):
     r = client.get("/")
     assert r.status_code == 200

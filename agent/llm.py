@@ -287,3 +287,13 @@ def get_llm() -> LLM:
             log.warning("ANTHROPIC_API_KEY not set — using FakeLLM")
         return FakeLLM()
     return ClaudeLLM()
+
+
+def export_prompts(path) -> None:
+    """Write the live prompts to a JSON file the under-the-hood page reads (nothing hidden)."""
+    import pathlib
+
+    pathlib.Path(path).write_text(json.dumps({
+        "classify": SYSTEM_CLASSIFY, "invoice": SYSTEM_EXTRACT_INVOICE, "dispute": SYSTEM_EXTRACT_DISPUTE,
+        "remittance": SYSTEM_EXTRACT_REMITTANCE, "verify": SYSTEM_VERIFY, "draft": SYSTEM_DRAFT,
+    }, indent=2), encoding="utf-8")

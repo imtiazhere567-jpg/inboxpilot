@@ -63,5 +63,8 @@ def reset_for_tests(engine: Engine | None = None) -> None:
     """Truncate every demo table (keeps customers/suppliers/rules). Used by tests and by pipeline.reset."""
     engine = engine or get_engine()
     with engine.begin() as conn:
-        conn.execute(text("TRUNCATE review_notes, actions, decisions, documents, emails, runs RESTART IDENTITY CASCADE"))
-        conn.execute(text("UPDATE app_state SET current_run_id = NULL, updated_at = now() WHERE id = 1"))
+        # app_state references runs, so TRUNCATE ... CASCADE would wipe it too: keep its timestamps and restore the row.
+        row = conn.execute(text("SELECT last_interaction_at, next_reset_at FROM app_state WHERE id = 1")).first()
+        conn.execute(text("TRUNCATE review_notes, actions, decisions, documents, emails, runs, app_state RESTART IDENTITY CASCADE"))
+        conn.execute(text("INSERT INTO app_state (id, last_interaction_at, next_reset_at, current_run_id) VALUES (1, :li, :nr, NULL)"),
+                     {"li": row[0] if row else None, "nr": row[1] if row else None})

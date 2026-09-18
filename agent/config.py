@@ -36,7 +36,7 @@ class Settings(BaseSettings):
     gmail_imap_host: str = "imap.gmail.com"
     gmail_smtp_host: str = "smtp.gmail.com"
     gmail_smtp_port: int = 587
-    gmail_label_inbox: str = "ops-agent/inbox"
+    gmail_label_inbox: str = "INBOX"
     gmail_label_processed: str = "ops-agent/processed"
 
     # --- Rules (Google Sheet) -------------------------------------------------
@@ -64,6 +64,9 @@ class Settings(BaseSettings):
     reset_interval_minutes: int = 60
     reset_idle_minutes: int = 15
     scheduler_enabled: bool = True
+    auto_seed_on_start: bool = Field(default=True, description="Seed the demo at startup when the database is empty")
+    seed_delay_seconds: float = Field(default=1.2, description="Pause between seed emails so the page shows them arriving")
+    approve_rate_limit_per_minute: int = 30
 
     @property
     def integrations_configured(self) -> dict[str, bool]:
