@@ -28,6 +28,7 @@ import asyncio
 import hashlib
 import hmac
 import logging
+import threading
 import time
 from collections import defaultdict, deque
 from contextlib import asynccontextmanager
@@ -79,7 +80,11 @@ async def lifespan(app: FastAPI):
     except Exception as exc:  # noqa: BLE001
         log.warning("could not export prompts: %s", exc)
     log.info("ops-agent %s starting (env=%s)", __version__, settings.app_env)
+    if settings.app_env != "test":
+        cache.start_warmer()
+        threading.Thread(target=_prime_cache, name="cache-prime", daemon=True).start()
     yield
+    cache.stop_warmer()
     if getattr(app.state, "scheduler_running", False):
         app.state.scheduler.shutdown(wait=False)
 
@@ -228,6 +233,19 @@ def api_brand():
     return {"name": s.company_name, "initials": s.company_initials, "logo": s.company_logo or None}
 
 
+def _prime_cache() -> None:
+    """Compute the pages a visitor opens first, so the very first load is served from memory."""
+    try:
+        get_status()
+        get_queue()
+        for tz in (0, -60, -300):  # UTC, UK summer time, Pakistan — where the demo is usually opened from
+            get_dashboard(tz)
+        api_parties("supplier")
+        api_parties("customer")
+    except Exception as exc:  # noqa: BLE001
+        log.debug("prime: %s", exc)
+
+
 def _touch() -> None:
     with session_scope() as s:
         touch_interaction(s)
@@ -240,7 +258,7 @@ def get_status():
     def compute():
         with session_scope() as s:
             return status(s)
-    return cache.cached("status", 5, compute)
+    return cache.cached("status", 600, compute)
 
 
 @app.get("/queue")
@@ -250,7 +268,7 @@ def get_queue():
     def compute():
         with session_scope() as s:
             return {"version": events.version(), "items": queue(s)}
-    return cache.cached("queue", 5, compute)
+    return cache.cached("queue", 600, compute)
 
 
 @app.get("/review/{document_id}")
@@ -263,7 +281,7 @@ def get_review(document_id: int):
             if item is None:
                 return None
             return {"item": item.model_dump(mode="json"), **review_extras(s, document_id)}
-    body = cache.cached(("review", document_id), 30, compute)
+    body = cache.cached(("review", document_id), 600, compute, keep_warm=False)
     if body is None:
         raise HTTPException(status_code=404, detail="no such document")
     return body
@@ -395,7 +413,7 @@ def get_dashboard(tz: int = 0):
     def compute():
         with session_scope() as s:
             return dashboard(s, tz_offset_minutes=tz)
-    return cache.cached(("dashboard", tz), 5, compute)
+    return cache.cached(("dashboard", tz), 600, compute)
 
 
 class AskBody(BaseModel):
@@ -494,7 +512,7 @@ def api_parties(kind: PartyKind = "supplier"):
     def compute():
         with session_scope() as s:
             return {"kind": kind, "items": list_parties(s, kind)}
-    return cache.cached(("parties", kind), 10, compute)
+    return cache.cached(("parties", kind), 600, compute)
 
 
 @app.post("/api/parties/{kind}")

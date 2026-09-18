@@ -65,6 +65,7 @@
   window.renderNavStatus = function (s) {
     if (!s) return;
     window.PRESENT = !!s.presentation;
+    const lo = document.getElementById('umLogout'); if (lo) lo.hidden = !s.login_required;
     const fake = s.llm === 'fake';
     if (s.company) {
       const short = (s.company.name || '').replace(/\s+(Ltd|Limited|LLP|plc|Inc\.?)$/i, '');

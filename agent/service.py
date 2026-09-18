@@ -180,6 +180,7 @@ def status(session: Session) -> dict[str, Any]:
         "mode": "shadow" if rules.shadow_mode else "live",
         "app_mode": settings.app_mode,
         "presentation": bool(settings.presentation_mode),
+        "login_required": bool(settings.demo_password),
         "company": {"name": settings.company_name, "email": settings.company_email, "initials": settings.company_initials, "logo": settings.company_logo or None},
         "shadow_mode": rules.shadow_mode,
         "simulate_outage": rules.simulate_outage,
