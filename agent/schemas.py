@@ -42,6 +42,7 @@ class InvoiceExtraction(BaseModel):
     supplier_name_on_document: str | None = None
     payment_terms: str | None = Field(default=None, description="e.g. '30 days', 'due 2026-10-01', bank details line")
     po_reference: str | None = Field(default=None, description="Customer PO / order reference quoted on the invoice, if any")
+    bank_account_last4: str | None = Field(default=None, description="Last 4 digits of the bank account the supplier asks to be paid into, if printed")
     line_items: list[LineItem] = Field(default_factory=list)
 
 

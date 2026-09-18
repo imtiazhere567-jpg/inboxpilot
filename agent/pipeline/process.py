@@ -130,6 +130,7 @@ def process_document(session: Session, doc: Document, llm: LLM, rules: RuleSet) 
         if doc.doc_type == "supplier_invoice":
             sup = session.get(Supplier, doc.party_id)
             facts.po_amount = sup.po_amount if sup else None
+            facts.bank_last4_on_file = sup.iban_last4 if sup else None
             inv_no = extracted.get("invoice_number")
             if inv_no:
                 prior = session.scalar(

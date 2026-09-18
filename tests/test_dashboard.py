@@ -18,10 +18,10 @@ def test_dashboard_shape(client):
     d = client.get("/dashboard?tz=0").json()
     t = d["today"]
     assert {"emails", "invoices", "invoices_total", "disputes", "held", "executed", "cost_usd", "manual_minutes"} <= set(t)
-    assert len(d["days"]) == 7 and sum(x["received"] for x in d["days"]) == 32
-    assert d["attention_total"] == 10 and all(a["status"] in ("held", "failed") for a in d["attention"])
+    assert len(d["days"]) == 7 and sum(x["received"] for x in d["days"]) == 33
+    assert d["attention_total"] == 11 and all(a["status"] in ("held", "failed") for a in d["attention"])
     assert d["feed"] and d["top_suppliers"][0]["name"] == "Acme Supplies Ltd"
-    assert d["run"]["documents"] == 32
+    assert d["run"]["documents"] == 33
 
 
 def test_ask_scope_and_document_lookup(client):
@@ -34,6 +34,8 @@ def test_ask_scope_and_document_lookup(client):
     assert r["answer"].startswith("12 customer(s) on file") and "Meridian Office Park" in r["answer"]
     r = client.post("/ask", json={"question": "list suppliers"}).json()
     assert r["answer"].startswith("10 supplier(s) on file")
+    r = client.post("/ask", json={"question": "show me ACME-2105"}).json()
+    assert "bank details" in r["answer"]
     r = client.post("/ask", json={"question": "show me ACME-2099"}).json()
     assert "doc #" in r["answer"] and "held" in r["answer"] and "1,203.90" in r["answer"]
     r = client.post("/ask", json={"question": "open doc #9"}).json()
@@ -44,7 +46,7 @@ def test_ask_scope_and_document_lookup(client):
 
 def test_ask_offline_answers(client):
     r = client.post("/ask", json={"question": "what is held and why?"}).json()
-    assert "10 item(s)" in r["answer"] and "IBL-7710" in r["answer"] and r["model"] == "fake"
+    assert "11 item(s)" in r["answer"] and "IBL-7710" in r["answer"] and r["model"] == "fake"
     r = client.post("/ask", json={"question": "total from acme"}).json()
     assert "Acme Supplies Ltd" in r["answer"] and "£" in r["answer"]
     assert client.post("/ask", json={"question": ""}).status_code == 422

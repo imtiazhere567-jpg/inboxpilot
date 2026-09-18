@@ -29,10 +29,10 @@ def manifest():
     return read_manifest()
 
 
-def test_thirty_emails_in_order(emails):
-    assert len(emails) == 30
-    assert [e["seed_no"] for e in emails] == list(range(1, 31))
-    assert len({e["message_id"] for e in emails}) == 30
+def test_thirty_one_emails_in_order(emails):
+    assert len(emails) == 31
+    assert [e["seed_no"] for e in emails] == list(range(1, 32))
+    assert len({e["message_id"] for e in emails}) == 31
 
 
 def test_every_email_has_expected_outcome(emails):
@@ -55,7 +55,7 @@ def test_scenario_coverage(emails):
     assert statuses["auto_approved"] >= 15 and statuses["held"] >= 9 and statuses["ignore"] >= 3
     reasons = " | ".join((d["reason_contains"] or "") for d in docs)
     for needle in ("threshold", "ambiguous", "no supplier match", "duplicate", "invoice number", "could not read",
-                   "refund", "name only", "legal", "sender", "instruction"):
+                   "refund", "name only", "legal", "sender", "instruction", "bank details"):
         assert needle in reasons, f"missing scenario: {needle}"
     assert any(d["doc_type"] == "remittance" for d in docs)
     assert any(len(e["expected"]["documents"]) == 2 for e in emails), "need an email yielding two documents"

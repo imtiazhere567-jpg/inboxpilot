@@ -152,6 +152,7 @@ class DocumentFacts:
     confidence: Decimal | None = None
     po_amount: Decimal | None = None
     duplicate_invoice_doc_id: int | None = None
+    bank_last4_on_file: str | None = None
     text_for_keywords: str = ""
 
 
@@ -186,7 +187,8 @@ def _evaluate(f: DocumentFacts, rules: RuleSet) -> RuleOutcome:
 
     kind = f.match.party_kind or ("supplier" if f.doc_type == "supplier_invoice" else "customer")
     if f.match.status == "none":
-        return RuleOutcome(status="held", reason=f"no {kind} match", triggered_rules=["match_none"])
+        hint = "not on file / not in QuickBooks — add them, or reject if unexpected" if kind == "supplier" else "not on file — add them, or reject if unexpected"
+        return RuleOutcome(status="held", reason=f"no {kind} match: {hint}", triggered_rules=["match_none"])
     if f.match.status == "ambiguous":
         return RuleOutcome(status="held", reason=f"ambiguous {kind}: {' / '.join(f.match.candidates)}",
                            triggered_rules=["match_ambiguous"])
@@ -201,6 +203,10 @@ def _evaluate(f: DocumentFacts, rules: RuleSet) -> RuleOutcome:
             return RuleOutcome(status="held", reason=f"possible duplicate: invoice number {ex.get('invoice_number')} "
                                                      f"already seen (doc #{f.duplicate_invoice_doc_id})",
                                triggered_rules=["duplicate_invoice_number"])
+        bank = (ex.get("bank_account_last4") or "").strip()
+        if bank and f.bank_last4_on_file and bank != f.bank_last4_on_file:
+            return RuleOutcome(status="held", reason=f"bank details on this invoice (…{bank}) differ from those on file (…{f.bank_last4_on_file}) — "
+                                                     f"verify with the supplier by phone before paying", triggered_rules=["bank_mandate_change"])
         total = _dec(ex.get("total"))
         if total is None:
             return RuleOutcome(status="held", reason="no total amount found on invoice", triggered_rules=["missing_total"])

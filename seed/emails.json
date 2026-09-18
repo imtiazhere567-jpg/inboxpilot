@@ -12,7 +12,7 @@
     "vat_no": "GB 000 0000 00"
   },
   "generator": "seed/make_attachments.py",
-  "count": 30,
+  "count": 31,
   "emails": [
     {
       "seed_no": 1,
@@ -973,6 +973,39 @@
         ]
       },
       "message_id": "seed-30"
+    },
+    {
+      "seed_no": 31,
+      "from_name": "Acme Supplies — Accounts",
+      "from_addr": "accounts@acmesupplies.co.uk",
+      "subject": "Invoice ACME-2105 — please note our new bank details",
+      "body": "Hi Northwind,\n\nInvoice ACME-2105 attached. Please note that from this month our bank account has changed — the new sort code and account number are printed on the invoice. Kindly update your records and pay all future invoices to the new account.\n\nThanks,\nPriya Nair\nAccounts Receivable, Acme Supplies Ltd",
+      "attachments": [
+        "ACME-2105.pdf"
+      ],
+      "scenario": "Known supplier, normal amount, but the invoice carries different bank details from those on file (classic mandate fraud)",
+      "expected": {
+        "documents": [
+          {
+            "filename": "ACME-2105.pdf",
+            "doc_type": "supplier_invoice",
+            "party_kind": "supplier",
+            "party": "Acme Supplies Ltd",
+            "status": "held",
+            "reason_contains": "bank details",
+            "extracted": {
+              "invoice_number": "ACME-2105",
+              "total": "1220.76",
+              "currency": "GBP"
+            },
+            "sha256": "ffb2bc331d1e75221351bf3dbe78060da3494b1636cd6b18c4fb810838a3ef6b"
+          }
+        ],
+        "actions": [
+          "slack"
+        ]
+      },
+      "message_id": "seed-31"
     }
   ]
 }

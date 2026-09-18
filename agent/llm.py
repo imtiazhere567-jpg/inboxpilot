@@ -90,7 +90,8 @@ SYSTEM_EXTRACT_INVOICE = f"""You extract fields from a supplier invoice received
 {DATA_NOT_INSTRUCTIONS}
 Extract ONLY values literally present in the document. Use null for anything absent — never guess or infer.
 Amounts are plain decimals with no currency symbol or thousands separator (1240.00). `total` is the final amount due
-including VAT. Dates as written. supplier_name_on_document is the issuing company's name as printed."""
+including VAT. Dates as written. supplier_name_on_document is the issuing company's name as printed.
+bank_account_last4: the last four digits of the account number the supplier asks to be paid into, if printed."""
 
 SYSTEM_EXTRACT_DISPUTE = f"""You extract the essentials of a customer complaint or dispute sent to {COMPANY}.
 {DATA_NOT_INSTRUCTIONS}
@@ -281,6 +282,7 @@ class FakeLLM:
         m_vat = re.search(r"VAT @ 20%\s*([\d,]+\.\d{2})|^vat_20pct,([\d.]+)", text, re.M | re.I)
         m_terms = re.search(r"Payment terms:\s*([^\n]+)", text)
         m_po = re.search(r"\b(NF-PO-\d+|PO\s*#?\s*[A-Z0-9-]{4,})\b", text)
+        m_bank = re.search(r"account(?: no\.?| number)?\s*[:#]?\s*[*x]*(\d{4})\b|ending (?:in )?(\d{4})\b", text, re.I)
         out = InvoiceExtraction(
             invoice_number=m_no.group(1) if m_no else None,
             invoice_date=dates[0] if dates else None,
@@ -292,6 +294,7 @@ class FakeLLM:
             supplier_name_on_document=text.strip().splitlines()[0][:80] if text.strip() else None,
             payment_terms=m_terms.group(1).strip()[:120] if m_terms else None,
             po_reference=m_po.group(1) if m_po else None,
+            bank_account_last4=(m_bank.group(1) or m_bank.group(2)) if m_bank else None,
             line_items=items,
         )
         return self._call("extract", out, text)
@@ -347,7 +350,7 @@ class FakeLLM:
         norm = source_text.replace(",", "").lower()
         missing = []
         for k, v in extracted.items():
-            if v in (None, "", [], {}) or isinstance(v, (list, dict)) or k in ("tone", "currency", "claim_summary", "supplier_name_on_document", "payer_name_on_document", "customer_name_on_document", "sender_name", "sender_role", "site", "incident_date", "asks_for", "payment_terms", "po_reference"):
+            if v in (None, "", [], {}) or isinstance(v, (list, dict)) or k in ("tone", "currency", "claim_summary", "supplier_name_on_document", "payer_name_on_document", "customer_name_on_document", "sender_name", "sender_role", "site", "incident_date", "asks_for", "payment_terms", "po_reference", "bank_account_last4"):
                 continue
             if str(v).replace(",", "").lower() not in norm:
                 missing.append(k)

@@ -121,7 +121,7 @@ def invoice_pdf(spec: dict) -> bytes:
 
     y -= 18 * mm
     c.setFont("Helvetica", 9)
-    c.drawString(20 * mm, y, f"Payment by BACS to {sup['name']} — sort code {sup['sort']}, account {sup['acct']}. "
+    c.drawString(20 * mm, y, f"Payment by BACS to {sup['name']} — sort code {spec.get('sort', sup['sort'])}, account {spec.get('acct', sup['acct'])}. "
                              f"Please quote {spec['number']}.")
     y -= 5 * mm
     c.drawString(20 * mm, y, f"Payment terms: due {spec['due']}. Queries: {sup['email']}")

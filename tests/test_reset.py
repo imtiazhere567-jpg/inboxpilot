@@ -22,9 +22,9 @@ def _fresh_state(db):
 @pytest.mark.usefixtures("db")
 def test_reset_replays_all_seeds(session):
     r = reset_demo(mode="inject", delay_s=0)
-    assert r["started"] and r.get("run_id") and r["seeded"] == 30 and "error" not in r
-    assert session.scalar(select(func.count(Email.id))) == 30
-    assert session.scalar(select(func.count(Document.id))) == 32
+    assert r["started"] and r.get("run_id") and r["seeded"] == 31 and "error" not in r
+    assert session.scalar(select(func.count(Email.id))) == 31
+    assert session.scalar(select(func.count(Document.id))) == 33
     state = session.get(AppState, 1)
     assert state.current_run_id == r["run_id"] and state.next_reset_at is not None
     assert session.get(Run, r["run_id"]).mode == "live"
@@ -34,9 +34,9 @@ def test_reset_replays_all_seeds(session):
     session.commit()  # release the test transaction's table locks before TRUNCATE runs again
     # second reset: everything replaced, counts identical
     r2 = reset_demo(mode="inject", delay_s=0)
-    assert r2["started"] and "error" not in r2 and r2["seeded"] == 30  # ids restart from 1 by design (stable doc numbers)
+    assert r2["started"] and "error" not in r2 and r2["seeded"] == 31  # ids restart from 1 by design (stable doc numbers)
     session.expire_all()
-    assert session.scalar(select(func.count(Email.id))) == 30
+    assert session.scalar(select(func.count(Email.id))) == 31
 
 
 @pytest.mark.usefixtures("db")
@@ -67,4 +67,4 @@ def test_maybe_reset_is_idle_aware(session):
         if not reset_in_progress():
             break
     session.expire_all()
-    assert session.scalar(select(func.count(Email.id))) == 30
+    assert session.scalar(select(func.count(Email.id))) == 31

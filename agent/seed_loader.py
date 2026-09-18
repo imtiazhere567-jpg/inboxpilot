@@ -117,8 +117,8 @@ def to_inbound(seed: dict[str, Any], run_tag: str = "") -> "InboundEmail":
     # Spread arrivals over the last three days (10 per day, 08:00-17:30) so the dashboard's "today" and
     # "last 7 days" views look like a real inbox rather than 30 emails in one minute.
     n = seed["seed_no"]
-    days_ago = (30 - n) // 10
-    slot = (n - 1) % 10
+    days_ago = max(0, (31 - n) // 11)
+    slot = (n - 1) % 11
     base = datetime.now(timezone.utc).replace(hour=8, minute=0, second=0, microsecond=0) - timedelta(days=days_ago)
     received = base + timedelta(minutes=57 * slot + (n * 7) % 23)
     if received > datetime.now(timezone.utc):

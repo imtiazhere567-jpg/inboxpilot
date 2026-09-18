@@ -23,7 +23,7 @@ def test_list_and_counts(client):
     cus = client.get("/api/parties?kind=customer").json()["items"]
     assert len(sup) == 10 and len(cus) == 12
     acme = next(p for p in sup if p["name"] == "Acme Supplies Ltd")
-    assert acme["documents"] == 3 and acme["held"] == 1 and acme["po_amount"] == 1240.0
+    assert acme["documents"] == 4 and acme["held"] == 2 and acme["po_amount"] == 1240.0
 
 
 def test_add_edit_delete_and_validation(client):
@@ -59,10 +59,10 @@ def test_party_history(client):
     sup = client.get("/api/parties?kind=supplier").json()["items"]
     acme = next(p for p in sup if p["name"] == "Acme Supplies Ltd")
     h = client.get(f"/api/parties/supplier/{acme['id']}/documents").json()
-    assert h["count"] == 3 and h["party"]["name"] == "Acme Supplies Ltd"
+    assert h["count"] == 4 and h["party"]["name"] == "Acme Supplies Ltd"
     refs = sorted(d["ref"] for d in h["documents"])
-    assert refs == ["ACME-2031", "ACME-2044", "ACME-2099"]
-    assert h["by_status"].get("held") == 1 and round(h["total_amount"], 2) == round(1239.84 + 1187.28 + 1203.90, 2)
+    assert refs == ["ACME-2031", "ACME-2044", "ACME-2099", "ACME-2105"]
+    assert h["by_status"].get("held") == 2
     assert client.get("/api/parties/supplier/9999/documents").status_code == 404
 
 

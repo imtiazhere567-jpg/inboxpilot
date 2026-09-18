@@ -41,3 +41,4 @@ Regenerate: `python seed/make_attachments.py`. Load master data: `python scripts
 | 28 | newsletter | ignore |
 | 29 | prompt injection | held |
 | 30 | remittance advice | auto_approved (Slack only) |
+| 31 | known supplier, invoice carries changed bank details | held (verify by phone) |
