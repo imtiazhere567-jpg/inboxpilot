@@ -1,0 +1,127 @@
+%PDF-1.3
+%“Œ‹ž ReportLab Generated PDF document (opensource)
+1 0 obj
+<<
+/F1 2 0 R /F2 3 0 R
+>>
+endobj
+2 0 obj
+<<
+/BaseFont /Helvetica /Encoding /WinAnsiEncoding /Name /F1 /Subtype /Type1 /Type /Font
+>>
+endobj
+3 0 obj
+<<
+/BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding /Name /F2 /Subtype /Type1 /Type /Font
+>>
+endobj
+4 0 obj
+<<
+/Contents 8 0 R /MediaBox [ 0 0 595.2756 841.8898 ] /Parent 7 0 R /Resources <<
+/Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>> /Rotate 0 /Trans <<
+
+>> 
+  /Type /Page
+>>
+endobj
+5 0 obj
+<<
+/PageMode /UseNone /Pages 7 0 R /Type /Catalog
+>>
+endobj
+6 0 obj
+<<
+/Author (seed generator) /CreationDate (D:20000101000000+00'00') /Creator (anonymous) /Keywords () /ModDate (D:20000101000000+00'00') /Producer (ReportLab PDF Library - \(opensource\)) 
+  /Subject (unspecified) /Title (Invoice FEN-5521) /Trapped /False
+>>
+endobj
+7 0 obj
+<<
+/Count 1 /Kids [ 4 0 R ] /Type /Pages
+>>
+endobj
+8 0 obj
+<<
+/Length 2761
+>>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+BT /F2 16 Tf 19.2 TL ET
+BT 1 0 0 1 56.69291 771.0236 Tm (Fenwick Electrical Ltd) Tj T* ET
+BT /F1 9 Tf 10.8 TL ET
+BT 1 0 0 1 56.69291 756.8504 Tm (Unit 9, Parkway) Tj T* ET
+BT 1 0 0 1 56.69291 742.6772 Tm (Bath BA2 3FF) Tj T* ET
+BT 1 0 0 1 56.69291 728.5039 Tm (accounts@fenwickelectrical.example) Tj T* ET
+BT 1 0 0 1 56.69291 714.3307 Tm (VAT no. GB 666 6666 66) Tj T* ET
+BT /F2 22 Tf 26.4 TL ET
+BT 1 0 0 1 448.1187 771.0236 Tm (INVOICE) Tj T* ET
+BT /F1 10 Tf 12 TL ET
+BT 1 0 0 1 419.0927 748.3465 Tm (Invoice number: FEN-5521) Tj T* ET
+BT 1 0 0 1 427.9627 731.3386 Tm (Invoice date: 2026-09-05) Tj T* ET
+BT 1 0 0 1 441.3027 714.3307 Tm (Due date: 2026-10-05) Tj T* ET
+BT /F2 10 Tf 12 TL ET
+BT 1 0 0 1 56.69291 674.6457 Tm (Bill to:) Tj T* ET
+BT /F1 10 Tf 12 TL ET
+BT 1 0 0 1 56.69291 660.4724 Tm (Northwind Facilities Ltd) Tj T* ET
+BT 1 0 0 1 56.69291 646.2992 Tm (Unit 4, Harbourside Business Park) Tj T* ET
+BT 1 0 0 1 56.69291 632.126 Tm (Bristol BS1 6XX) Tj T* ET
+BT 1 0 0 1 56.69291 617.9528 Tm (United Kingdom) Tj T* ET
+BT 1 0 0 1 56.69291 603.7795 Tm (accounts@northwind-facilities.example) Tj T* ET
+BT /F2 10 Tf 12 TL ET
+BT 1 0 0 1 56.69291 564.0945 Tm (Description) Tj T* ET
+BT 1 0 0 1 323.4875 564.0945 Tm (Qty) Tj T* ET
+BT 1 0 0 1 374.6469 564.0945 Tm (Unit \(GBP\)) Tj T* ET
+BT 1 0 0 1 491.3627 564.0945 Tm (Net \(GBP\)) Tj T* ET
+n 56.69291 558.4252 m 538.5827 558.4252 l S
+BT /F1 10 Tf 12 TL ET
+BT 1 0 0 1 56.69291 544.252 Tm (Emergency lighting test \227 annual) Tj T* ET
+BT 1 0 0 1 334.5975 544.252 Tm (1) Tj T* ET
+BT 1 0 0 1 394.6169 544.252 Tm (640.00) Tj T* ET
+BT 1 0 0 1 508.0027 544.252 Tm (640.00) Tj T* ET
+BT 1 0 0 1 56.69291 524.4094 Tm (Replace LED fittings) Tj T* ET
+BT 1 0 0 1 334.5975 524.4094 Tm (9) Tj T* ET
+BT 1 0 0 1 400.1769 524.4094 Tm (58.50) Tj T* ET
+BT 1 0 0 1 508.0027 524.4094 Tm (526.50) Tj T* ET
+BT 1 0 0 1 56.69291 504.5669 Tm (Call-out charge) Tj T* ET
+BT 1 0 0 1 334.5975 504.5669 Tm (1) Tj T* ET
+BT 1 0 0 1 405.7369 504.5669 Tm (9.00) Tj T* ET
+BT 1 0 0 1 519.1227 504.5669 Tm (9.00) Tj T* ET
+n 311.811 481.8898 m 538.5827 481.8898 l S
+BT 1 0 0 1 365.1669 470.5512 Tm (Subtotal \(net\)) Tj T* ET
+BT 1 0 0 1 499.6627 470.5512 Tm (1,175.50) Tj T* ET
+BT 1 0 0 1 370.0269 453.5433 Tm (VAT @ 20%) Tj T* ET
+BT 1 0 0 1 508.0027 453.5433 Tm (235.10) Tj T* ET
+BT /F2 12 Tf 14.4 TL ET
+BT 1 0 0 1 356.5329 433.7008 Tm (TOTAL DUE) Tj T* ET
+BT 1 0 0 1 462.5387 433.7008 Tm (GBP 1,410.60) Tj T* ET
+BT /F1 9 Tf 10.8 TL ET
+BT 1 0 0 1 56.69291 382.6772 Tm (Payment by BACS to Fenwick Electrical Ltd \227 sort code 20-00-05, account ****9013. Please quote FEN-5521.) Tj T* ET
+BT 1 0 0 1 56.69291 368.5039 Tm (Payment terms: due 2026-10-05. Queries: accounts@fenwickelectrical.example) Tj T* ET
+ 
+endstream
+endobj
+xref
+0 9
+0000000000 65535 f 
+0000000061 00000 n 
+0000000102 00000 n 
+0000000209 00000 n 
+0000000321 00000 n 
+0000000524 00000 n 
+0000000592 00000 n 
+0000000866 00000 n 
+0000000925 00000 n 
+trailer
+<<
+/ID 
+[<96ca4bb79795ea13d4e4c4203f28b468><96ca4bb79795ea13d4e4c4203f28b468>]
+% ReportLab generated PDF document -- digest (opensource)
+
+/Info 6 0 R
+/Root 5 0 R
+/Size 9
+>>
+startxref
+3737
+%%EOF

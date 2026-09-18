@@ -1,0 +1,11 @@
+name,identifier_patterns,qbo_vendor_id,iban_last4,po_amount
+Acme Supplies Ltd,acmesupplies.example|ACME-,,4821,1240.00
+Brightline Uniforms Ltd,brightline-uniforms.example|BLU-,,7730,690.00
+Castle Equipment Hire,castlehire.example|CEH-|tradepay.example,,1194,2600.00
+Delta Waste Services,deltawaste.example|DWS-,,5508,1850.00
+Evergreen Grounds Ltd,evergreen-grounds.example|EGL-,,2267,960.00
+Fenwick Electrical Ltd,fenwickelectrical.example|FEN-,,9013,1400.00
+Granite Facilities Supplies,granitefs.example|GFS-|tradepay.example,,3376,800.00
+Harbour Pest Control,harbourpest.example|HPC-,,6642,350.00
+Ironbridge Lifts & Maintenance,ironbridgelifts.example|IBL-,,8159,3500.00
+Juniper Window Cleaning,juniperwindows.example|JWC-,,1085,520.00

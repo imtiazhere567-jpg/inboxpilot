@@ -1,0 +1,11 @@
+supplier,supplier_email,invoice_number,invoice_date,due_date,currency
+Juniper Window Cleaning,hello@juniperwindows.example,JWC-1281,2026-09-11,2026-09-25,GBP
+
+description,qty,unit_price_net,line_net
+External window clean — 3 sites,3,120.00,360.00
+Reach & wash — atrium glazing,1,73.33,73.33
+
+subtotal_net,433.33
+vat_20pct,86.67
+total_due,520.00
+bill_to,Northwind Facilities Ltd

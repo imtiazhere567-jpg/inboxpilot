@@ -1,0 +1,13 @@
+name,identifier_patterns,hubspot_company_id,contact_email
+Meridian Office Park Ltd,meridianoffice.example|MOP-,,facilities@meridianoffice.example
+Bluewater Dental Group,bluewaterdental.example|BWD-,,practice.manager@bluewaterdental.example
+Kingsway Primary School,kingsway-primary.example|KPS-,,office@kingsway-primary.example
+Orchard Retail Ltd,orchardretail.example|ORC-,,storeops@orchardretail.example
+Pinnacle Serviced Offices,pinnacleoffices.example|PSO-,,centre.manager@pinnacleoffices.example
+Redwood Care Homes,redwoodcare.example|RCH-,,ops@redwoodcare.example
+Silverline Logistics Ltd,silverline-logistics.example|SLL-,,depot@silverline-logistics.example
+Thornfield Gym & Leisure,thornfieldgym.example|TGL-,,manager@thornfieldgym.example
+Union Square Residents Management,unionsq-mgmt.example|USQ-,,block.manager@unionsq-mgmt.example
+Vantage Legal LLP,vantagelegal.example|VLL-,,officemanager@vantagelegal.example
+Westgate Medical Centre,westgatemedical.example|WMC-,,practicemanager@westgatemedical.example
+Yardley Motors Ltd,yardleymotors.example|YMO-,,accounts@yardleymotors.example

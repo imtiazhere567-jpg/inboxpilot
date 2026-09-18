@@ -1,0 +1,9 @@
+key,value,note
+invoice_auto_approve_max,2000,GBP; invoices above this are held for a human
+invoice_tolerance_pct,5,allowed % difference vs the supplier's PO amount
+refund_auto_max,200,disputes requesting more than this are held
+escalate_keywords,"legal,solicitor,lawsuit,ombudsman",any of these words in a dispute -> hold for a human
+ignore_sender_domains,"mailchimp.com,newsletter.",sender domain contains any of these -> ignore without calling the model
+min_confidence_auto,0.85,below this confidence the item is held regardless of other rules
+shadow_mode,false,true = evaluate everything; execute nothing
+simulate_outage,none,none | qbo | hubspot | slack — makes that action fail so the Failed/Retry path can be shown
