@@ -21,7 +21,7 @@
 </head>
 <body>
 <form class="card login" id="f">
-  <div class="brand"><svg width="26" height="26" viewBox="0 0 28 28" fill="none" aria-hidden="true"><rect x="2" y="2" width="24" height="24" rx="7" fill="#15171A"/><path d="M8 14.5 12 18.5 20 9.5" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Ops Agent</div>
+  <div class="brand" id="brand"><svg width="26" height="26" viewBox="0 0 28 28" fill="none" aria-hidden="true"><rect x="2" y="2" width="24" height="24" rx="7" fill="#15171A"/><path d="M8 14.5 12 18.5 20 9.5" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Ops Agent</div>
   <h1>Sign in to the demo</h1>
   <p>Shared demo password. Seeded, fictional data — no real customers, invoices or people.</p>
   <label for="pw">Password</label>
@@ -31,6 +31,7 @@
   <small><a href="/inside">See how it works first →</a></small>
 </form>
 <script>
+fetch('/api/brand').then(r => r.json()).then(b => { const el = document.getElementById('brand'); const short = (b.name || '').replace(/\s+(Ltd|Limited|LLP|plc)$/i, ''); el.innerHTML = (b.logo ? `<img src="${b.logo}" alt="" style="width:28px;height:28px;object-fit:contain;border-radius:6px">` : `<span style="width:28px;height:28px;border-radius:7px;background:#15171A;color:#fff;font-size:11px;font-weight:800;display:inline-flex;align-items:center;justify-content:center">${b.initials || ''}</span>`) + short; document.title = short + ' — sign in'; }).catch(() => {});
 document.getElementById('f').addEventListener('submit', async e => {
   e.preventDefault();
   const r = await fetch('/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({password:document.getElementById('pw').value})});

@@ -105,6 +105,7 @@ function field(row) {
   const src = row.source ? `<span class="src ${row.source}">${row.source}</span>` : '';
   const hint = row.set && row.secret ? `<small>saved ${esc(row.hint)}</small>` : '';
   const isJson = row.key === 'google_service_account_json';
+  if (row.key === 'company_logo') return `<div class="field"><label>Logo<small>PNG, SVG or JPG · square works best · under 200 KB</small></label><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span id="logoPreview">${row.set ? '<span class="chip c-executed">logo set</span>' : '<span class="muted">no logo — initials are shown</span>'}</span><input type="file" id="logoFile" accept="image/png,image/svg+xml,image/jpeg,image/webp" style="font-size:12px"><button type="button" class="btn small" id="logoClear" ${row.set ? '' : 'hidden'}>Remove</button><input type="hidden" name="company_logo" id="logoData" value="${row.set ? '••••••••' : ''}"></div></div>`;
   const input = isJson
     ? `<textarea class="field-input" name="${row.key}" placeholder='{"type": "service_account", ...}'>${row.set ? '••••••••' : ''}</textarea>`
     : `<input class="field-input" name="${row.key}" type="${row.secret ? 'password' : 'text'}" value="${esc(row.value)}" placeholder="${row.set ? '' : 'not set'}" autocomplete="off">`;
@@ -145,6 +146,15 @@ document.addEventListener('click', async e => {
     catch (err) { r.textContent = err.message; r.classList.add('bad'); }
   }
 });
+document.addEventListener('change', e => {
+  if (e.target.id !== 'logoFile') return;
+  const f = e.target.files[0]; if (!f) return;
+  if (f.size > 200 * 1024) { toast('Logo must be under 200 KB'); e.target.value = ''; return; }
+  const r = new FileReader();
+  r.onload = () => { $('#logoData').value = r.result; $('#logoPreview').innerHTML = `<img src="${r.result}" alt="" style="width:32px;height:32px;object-fit:contain;border-radius:6px;border:1px solid var(--line)"> <span class="muted">ready — press Save</span>`; $('#logoClear').hidden = false; };
+  r.readAsDataURL(f);
+});
+document.addEventListener('click', e => { if (e.target.id === 'logoClear') { $('#logoData').value = ''; $('#logoPreview').innerHTML = '<span class="muted">will be removed on Save</span>'; } });
 load().catch(e => toast(e.message));
 </script>
 </body>

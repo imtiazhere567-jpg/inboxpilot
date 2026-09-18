@@ -52,7 +52,7 @@ ROOT = Path(__file__).resolve().parent
 STATIC_DIR = ROOT / "static"
 DOCS_DIR = ROOT.parent / "docs"
 
-PUBLIC_PATHS = ("/health", "/login", "/logout", "/inside", "/static", "/docs", "/openapi.json", "/redoc", "/favicon.ico")
+PUBLIC_PATHS = ("/health", "/login", "/logout", "/inside", "/static", "/docs", "/openapi.json", "/redoc", "/favicon.ico", "/api/brand")
 
 
 @asynccontextmanager
@@ -215,6 +215,12 @@ def health() -> HealthResponse:
         db_ok = False
     return HealthResponse(status="ok" if db_ok else "degraded", version=__version__, env=settings.app_env, database=db_ok,
                           integrations=settings.integrations_configured, scheduler=bool(getattr(app.state, "scheduler_running", False)))
+
+
+@app.get("/api/brand")
+def api_brand():
+    s = get_settings()
+    return {"name": s.company_name, "initials": s.company_initials, "logo": s.company_logo or None}
 
 
 @app.get("/status")

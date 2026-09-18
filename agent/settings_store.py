@@ -25,7 +25,8 @@ log = logging.getLogger("ops_agent.settings")
 FIELDS: dict[str, list[tuple[str, str, bool]]] = {
     "mode": [("app_mode", "Mode: demo (seeded inbox, auto reset) or live (your real inbox, no reset)", False),
              ("presentation_mode", "Presentation mode: hide demo / simulated / model badges (true or false)", False)],
-    "company": [("company_name", "Company name", False), ("company_email", "Operations inbox address", False), ("company_initials", "Initials for the sidebar mark", False)],
+    "company": [("company_name", "Company name", False), ("company_email", "Operations inbox address", False), ("company_initials", "Initials (shown when there is no logo)", False),
+                ("company_logo", "Logo", False)],
     "anthropic": [("anthropic_api_key", "Anthropic API key", True), ("claude_model_main", "Main model", False)],
     "gmail": [("gmail_address", "Gmail address", False), ("gmail_app_password", "Gmail app password", True),
               ("gmail_label_inbox", "Folder to watch", False)],
@@ -104,6 +105,11 @@ def save_settings(session: Session, values: dict[str, Any]) -> list[str]:
             v = "true" if v.lower() in ("true", "1", "yes", "on") else "false"
         if k == "google_service_account_json" and v.startswith("{"):
             json.loads(v)  # validate
+        if k == "company_logo":
+            if not v.startswith("data:image/"):
+                raise ValueError("logo must be an image (PNG, SVG or JPG)")
+            if len(v) > 280_000:
+                raise ValueError("logo is too large — keep it under 200 KB")
         if row is None:
             row = AppSetting(key=k, value_enc=_enc(v))
         else:
@@ -126,7 +132,7 @@ def masked_view(session: Session) -> dict[str, Any]:
         for key, label, is_secret in fields:
             val = getattr(s, key, "") or ""
             source = "settings" if key in overrides else ("env" if env_defaults.get(key) else "")
-            shown = ("••••••••" if is_secret else str(val)) if val else ""
+            shown = ("••••••••" if is_secret else (str(val) if key != "company_logo" else "")) if val else ""
             rows.append({"key": key, "label": label, "secret": is_secret, "set": bool(val), "source": source, "value": shown,
                          "hint": (f"…{str(val)[-4:]}" if is_secret and val and len(str(val)) > 8 else "")})
         groups[group] = rows

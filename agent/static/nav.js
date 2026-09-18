@@ -23,7 +23,7 @@
   const existing = Array.from(document.body.childNodes).filter(n => n !== script && !(n.nodeType === 1 && n.tagName === 'SCRIPT' && n !== script));
   const shell = document.createElement('div'); shell.className = 'shell';
   const side = document.createElement('nav'); side.className = 'sidebar'; side.setAttribute('aria-label', 'Main');
-  side.innerHTML = `<a class="brand" href="/">${I.logo}<span id="navBrand">Ops Agent</span></a>
+  side.innerHTML = `<a class="brand" href="/"><span id="navLogo" class="brandmark">${I.logo}</span><span id="navBrand">Ops Agent</span></a>
     ${links.map(([k, href, label, ic]) => `<a class="nav ${k === page ? 'on' : ''}" href="${href}" ${k === page ? 'aria-current="page"' : ''}>${ic}<span>${label}</span>${k === 'inbox' ? '<span class="cnt" id="navHeld" hidden title="waiting for a person"></span>' : ''}</a>`).join('')}
     <div class="foot">
       <div class="ws"><span class="mark" id="navMark" style="background:#D97757">IA</span><span><b id="navCompany">Imtiaz A.</b><small id="navEmail">ops@northwindfacilities.co.uk</small></span></div>
@@ -70,6 +70,8 @@
       const short = (s.company.name || '').replace(/\s+(Ltd|Limited|LLP|plc|Inc\.?)$/i, '');
       const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
       set('navBrand', short); set('navCrumbCompany', short); set('navEmail', s.company.email || ''); document.title = document.title.replace(/^Ops Agent/, short);
+      const lg = document.getElementById('navLogo');
+      if (lg) lg.innerHTML = s.company.logo ? `<img src="${s.company.logo}" alt="" style="width:28px;height:28px;object-fit:contain;border-radius:6px">` : `<span class="initials">${window.esc(s.company.initials || short.slice(0, 2).toUpperCase())}</span>`;
     }
     const b = document.getElementById('navBadges');
     if (b) b.innerHTML = s.presentation

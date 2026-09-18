@@ -13,6 +13,8 @@ a{color:var(--blue)}
 .sidebar{width:228px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--line);padding:22px 14px;display:flex;flex-direction:column;gap:6px;position:sticky;top:0;height:100vh}
 .sidebar .brand{display:flex;align-items:center;gap:10px;padding:4px 8px 18px;text-decoration:none;color:var(--ink);font-size:17px;font-weight:800;letter-spacing:-.02em}
 .sidebar .brand svg{flex-shrink:0}
+.brandmark{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;flex-shrink:0}
+.brandmark .initials{width:28px;height:28px;border-radius:7px;background:var(--ink);color:#fff;font-size:11px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;letter-spacing:.02em}
 .sidebar a.nav{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;color:var(--text);text-decoration:none;font-size:13.5px;font-weight:600}
 .sidebar a.nav:hover{background:#F1F2EE;color:var(--ink)}
 .sidebar a.nav.on{background:#ECEDEA;color:var(--ink);font-weight:700}

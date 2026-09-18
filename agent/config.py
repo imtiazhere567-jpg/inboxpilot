@@ -72,6 +72,7 @@ class Settings(BaseSettings):
     company_name: str = "Northwind Facilities Ltd"
     company_email: str = "ops@northwindfacilities.co.uk"
     company_initials: str = "NF"
+    company_logo: str = Field(default="", description="Logo as a data: URL (PNG/SVG/JPG, up to 200 KB); empty = initials mark")
     settings_secret: str = Field(default="", description="Encrypts dashboard-saved settings; falls back to RESET_TOKEN")
 
     @property
