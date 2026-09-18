@@ -78,10 +78,10 @@ function linkify(text) {
   out = out.replace(/\b([A-Z]{2,5}-\d{3,6})\b/g, (m) => refMap[m] ? `<a class="doc" href="/inbox#doc-${refMap[m]}" title="open this document">${m}</a>` : m);
   return out;
 }
-function hello() { return `<div class="msg a hello"><b>Ask about the inbox.</b>I answer from the ledger — counts, amounts, what's held and why, a supplier's or customer's history, today's activity. Mention a reference like ACME-2031 or "doc #12" to open a specific document.</div>`; }
+function hello() { return `<div class="msg a hello"><b>Hello — how can I help with the inbox?</b>Ask what came in today, what's waiting for you, a supplier's or customer's history, or mention a reference like ACME-2031 to open a specific document.</div>`; }
 function renderHistory() {
   const msgs = cur ? cur.messages : [];
-  $('#msgs').innerHTML = hello() + msgs.map(h => h.role === 'user' ? `<div class="msg u">${esc(h.content)}</div>` : `<div class="msg a">${linkify(h.content)}${h.meta ? `<small>${esc(h.meta)}</small>` : ''}</div>`).join('');
+  $('#msgs').innerHTML = hello() + msgs.map(h => h.role === 'user' ? `<div class="msg u">${esc(h.content)}</div>` : `<div class="msg a">${linkify(h.content)}</div>`).join('');
   $('#msgs').scrollTop = $('#msgs').scrollHeight;
 }
 
@@ -104,7 +104,7 @@ $('#askForm').addEventListener('submit', async e => {
   const m = $('#msgs'); const thinking = document.createElement('div'); thinking.className = 'msg a'; thinking.textContent = '…'; m.appendChild(thinking); m.scrollTop = m.scrollHeight;
   try {
     const r = await api('/ask', { method: 'POST', body: JSON.stringify({ question: q, history: cur.messages.map(h => ({ role: h.role, content: h.content })).slice(-8) }) });
-    cur.messages.push({ role: 'assistant', content: r.answer, meta: window.PRESENT ? `${r.duration_ms} ms · $${r.cost_usd.toFixed(4)}` : `${r.model} · ${r.duration_ms} ms · $${r.cost_usd.toFixed(4)}` });
+    cur.messages.push({ role: 'assistant', content: r.answer });
   } catch (err) { cur.messages.push({ role: 'assistant', content: 'Could not answer: ' + err.message }); }
   save(); renderHistory();
 });

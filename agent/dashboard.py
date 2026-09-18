@@ -170,5 +170,12 @@ def ledger_context_for_ai(session: Session, limit: int = 150) -> dict[str, Any]:
             "actions": [f"{a.system}:{a.status}" for a in d.actions] or None,
         })
     st = status(session)
-    return {"now": datetime.now(timezone.utc).isoformat(timespec="minutes"), "documents": rows[-limit:],
+    from sqlalchemy import select as _select
+
+    from agent.models import Customer, Supplier
+
+    directory = {"suppliers": [x.name for x in session.scalars(_select(Supplier).order_by(Supplier.name))],
+                 "customers": [x.name for x in session.scalars(_select(Customer).order_by(Customer.name))]}
+    return {"now": datetime.now(timezone.utc).isoformat(timespec="minutes"), "company": st.get("company", {}), "directory": directory,
+            "documents": rows[-limit:],
             "summary": {k: st[k] for k in ("mode", "counts", "documents", "emails", "cost_usd", "estimated_manual_minutes", "human_reviews")}}

@@ -23,10 +23,10 @@
   const existing = Array.from(document.body.childNodes).filter(n => n !== script && !(n.nodeType === 1 && n.tagName === 'SCRIPT' && n !== script));
   const shell = document.createElement('div'); shell.className = 'shell';
   const side = document.createElement('nav'); side.className = 'sidebar'; side.setAttribute('aria-label', 'Main');
-  side.innerHTML = `<a class="brand" href="/">${I.logo}<span>Ops Agent</span></a>
+  side.innerHTML = `<a class="brand" href="/">${I.logo}<span id="navBrand">Ops Agent</span></a>
     ${links.map(([k, href, label, ic]) => `<a class="nav ${k === page ? 'on' : ''}" href="${href}" ${k === page ? 'aria-current="page"' : ''}>${ic}<span>${label}</span>${k === 'inbox' ? '<span class="cnt" id="navHeld" hidden title="waiting for a person"></span>' : ''}</a>`).join('')}
     <div class="foot">
-      <div class="ws"><span class="mark" id="navMark">NF</span><span><b id="navCompany">Northwind Facilities</b><small id="navEmail">ops@northwindfacilities.co.uk</small></span></div>
+      <div class="ws"><span class="mark" id="navMark" style="background:#D97757">IA</span><span><b id="navCompany">Imtiaz A.</b><small id="navEmail">ops@northwindfacilities.co.uk</small></span></div>
       <div class="badges" id="navBadges"></div>
       <a class="nav" href="/inside" ${page === 'inside' ? 'aria-current="page"' : ''}>${I.help}<span>Under the hood</span></a>
     </div>`;
@@ -69,7 +69,7 @@
     if (s.company) {
       const short = (s.company.name || '').replace(/\s+(Ltd|Limited|LLP|plc|Inc\.?)$/i, '');
       const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-      set('navCompany', short); set('navCrumbCompany', short); set('navEmail', s.company.email || ''); set('navMark', s.company.initials || short.slice(0, 2).toUpperCase());
+      set('navBrand', short); set('navCrumbCompany', short); set('navEmail', s.company.email || ''); document.title = document.title.replace(/^Ops Agent/, short);
     }
     const b = document.getElementById('navBadges');
     if (b) b.innerHTML = s.presentation

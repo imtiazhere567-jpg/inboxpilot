@@ -26,7 +26,14 @@ def test_dashboard_shape(client):
 
 def test_ask_scope_and_document_lookup(client):
     r = client.post("/ask", json={"question": "what is the capital of France?"}).json()
-    assert r["answer"].startswith("I can only answer questions about this inbox")
+    assert r["answer"].startswith("Sorry, I can't help with that")
+    assert client.post("/ask", json={"question": "hi"}).json()["answer"].startswith("Hello!")
+    assert "doing well" in client.post("/ask", json={"question": "how are you doing?"}).json()["answer"]
+    assert "What came in today" in client.post("/ask", json={"question": "how can you help me?"}).json()["answer"]
+    r = client.post("/ask", json={"question": "how many customers are in my system?"}).json()
+    assert r["answer"].startswith("12 customer(s) on file") and "Meridian Office Park" in r["answer"]
+    r = client.post("/ask", json={"question": "list suppliers"}).json()
+    assert r["answer"].startswith("10 supplier(s) on file")
     r = client.post("/ask", json={"question": "show me ACME-2099"}).json()
     assert "doc #" in r["answer"] and "held" in r["answer"] and "1,203.90" in r["answer"]
     r = client.post("/ask", json={"question": "open doc #9"}).json()
