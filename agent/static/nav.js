@@ -15,14 +15,15 @@
     chev: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>',
     logo: '<svg width="26" height="26" viewBox="0 0 28 28" fill="none" aria-hidden="true"><rect x="2" y="2" width="24" height="24" rx="7" fill="#15171A"/><path d="M8 14.5 12 18.5 20 9.5" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   };
-  const links = [['dashboard', '/', 'Dashboard', I.dash], ['inbox', '/inbox', 'Inbox & review', I.inbox], ['directory', '/directory', 'Suppliers & customers', I.people], ['settings', '/settings', 'Settings', I.gear]];
+  I.chat = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 21l1.9-5.4A8 8 0 1 1 21 12z"/></svg>';
+  const links = [['dashboard', '/', 'Dashboard', I.dash], ['ask', '/ask', 'Ask the agent', I.chat], ['directory', '/directory', 'Suppliers & customers', I.people], ['settings', '/settings', 'Settings', I.gear]];
 
   // Build the shell around whatever the page already put in <body>
   const existing = Array.from(document.body.childNodes).filter(n => n !== script && !(n.nodeType === 1 && n.tagName === 'SCRIPT' && n !== script));
   const shell = document.createElement('div'); shell.className = 'shell';
   const side = document.createElement('nav'); side.className = 'sidebar'; side.setAttribute('aria-label', 'Main');
   side.innerHTML = `<a class="brand" href="/">${I.logo}<span>Ops Agent</span></a>
-    ${links.map(([k, href, label, ic]) => `<a class="nav ${k === page ? 'on' : ''}" href="${href}" ${k === page ? 'aria-current="page"' : ''}>${ic}<span>${label}</span>${k === 'inbox' ? '<span class="cnt" id="navHeld" hidden></span>' : ''}</a>`).join('')}
+    ${links.map(([k, href, label, ic]) => `<a class="nav ${k === page ? 'on' : ''}" href="${href}" ${k === page ? 'aria-current="page"' : ''}>${ic}<span>${label}</span>${k === 'dashboard' ? '<span class="cnt" id="navHeld" hidden title="waiting for a person"></span>' : ''}</a>`).join('')}
     <div class="foot">
       <div class="ws"><span class="mark">NF</span><span><b>Northwind Facilities</b><small>ops@northwind-facilities.example</small></span></div>
       <div class="badges" id="navBadges"></div>

@@ -4,6 +4,7 @@
       --ok:#0A7A2F;--okbg:#E3F3E7;--hold:#7A4B00;--holdbg:#FFF1D6;--holddot:#E8A317;--bad:#B00020;--badbg:#FDE8EA;--grey:#4B5563;--greybg:#EEF0F3;
       --shadow:#5B21B6;--shadowbg:#EFE7FB;--mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;--sans:Manrope,system-ui,sans-serif}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{height:100%}
 body{margin:0;font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:13px;line-height:1.45}
 a{color:var(--blue)}
@@ -68,3 +69,21 @@ th{color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;le
 input,select,textarea{font:inherit}
 .field-input{width:100%;font:inherit;font-family:var(--mono);font-size:12.5px;border:1px solid var(--line-strong);border-radius:8px;padding:9px 10px;background:#fff}
 .field-input:focus{outline:2px solid var(--blue-soft);border-color:var(--blue)}
+
+/* slide-over panel (review, party details) */
+.drawer{position:fixed;top:0;right:0;height:100vh;width:min(560px,100vw);background:#fff;border-left:1px solid var(--line);box-shadow:-16px 0 48px rgba(21,23,26,.12);transform:translateX(100%);transition:transform .2s;z-index:30;display:flex;flex-direction:column}
+.drawer.open{transform:none}
+.drawer > .head{padding:14px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;flex-shrink:0}
+.drawer > .head b{font-size:14px;font-weight:800}
+.drawer > .body{flex:1;overflow:auto;padding:18px 20px}
+.drawer .close{margin-left:auto}
+.scrim{position:fixed;inset:0;background:rgba(21,23,26,.18);z-index:29;display:none}
+.scrim.open{display:block}
+/* distribution bar */
+.dist{display:flex;height:14px;border-radius:999px;overflow:hidden;background:#F0F1EE}
+.dist i{display:block;height:100%}
+.distlegend{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px 18px;margin-top:12px}
+.distlegend div{display:flex;align-items:center;gap:8px;font-size:12.5px}
+.distlegend i{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.distlegend b{font-family:var(--mono);font-weight:600;margin-left:auto}
+.distlegend span.p{color:var(--muted);font-family:var(--mono);font-size:11.5px;width:3.2em;text-align:right}

@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ops Agent — ask the agent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/app.css">
+<style>
+  .layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px;align-items:start;flex:1;min-height:0}
+  @media (max-width:1000px){.layout{grid-template-columns:1fr}}
+  .chat{display:flex;flex-direction:column;height:calc(100vh - 210px);min-height:460px}
+  .msgs{flex:1;overflow:auto;padding:20px 22px;display:flex;flex-direction:column;gap:12px}
+  .msg{max-width:78%;padding:11px 14px;border-radius:12px;white-space:pre-wrap;font-size:13.5px;line-height:1.5}
+  .msg.u{align-self:flex-end;background:var(--blue);color:#fff;border-bottom-right-radius:4px}
+  .msg.a{align-self:flex-start;background:#F4F5F2;border-bottom-left-radius:4px}
+  .msg.a small{display:block;color:var(--muted);font-size:10.5px;margin-top:6px;font-family:var(--mono)}
+  .msg.hello{background:transparent;padding:0;max-width:640px;color:var(--text)}
+  .msg.hello b{display:block;color:var(--ink);font-size:16px;margin-bottom:4px}
+  .askrow{display:flex;gap:8px;padding:14px 18px;border-top:1px solid var(--line)}
+  .askrow input{flex:1;font:inherit;font-size:14px;border:1px solid var(--line-strong);border-radius:10px;padding:11px 14px}
+  .askrow input:focus{outline:2px solid var(--blue-soft);border-color:var(--blue)}
+  .side{display:flex;flex-direction:column;gap:14px}
+  .side .body{padding:14px 18px;display:flex;flex-direction:column;gap:8px}
+  .side button.q{text-align:left;font:inherit;font-size:12.5px;border:1px solid var(--line);background:#fff;border-radius:8px;padding:9px 11px;cursor:pointer;color:var(--text)}
+  .side button.q:hover{background:#FAFAF8;border-color:var(--line-strong)}
+  .side p{margin:0;font-size:12.5px;color:var(--muted)}
+  .side dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:12px}
+  .side dt{color:var(--muted)}.side dd{margin:0;font-family:var(--mono)}
+</style>
+</head>
+<body>
+<div class="banner" id="banner"></div>
+<main class="page">
+  <div class="page-head">
+    <div><h1>Ask the agent</h1><div class="sub">Plain-English questions about the inbox — counts, amounts, what is held and why, a supplier's history. Answers come only from the ledger; nothing is invented.</div></div>
+    <div class="actions"><button class="btn" id="clearBtn" type="button">Clear conversation</button></div>
+  </div>
+  <div class="layout">
+    <section class="card chat">
+      <div class="msgs" id="msgs"></div>
+      <form class="askrow" id="askForm"><input id="q" placeholder="e.g. how many invoices came in today and what is their total?" autocomplete="off" autofocus><button class="btn primary" type="submit">Ask</button></form>
+    </section>
+    <aside class="side">
+      <section class="card"><div class="head"><span>Try asking</span></div><div class="body" id="sugg"></div></section>
+      <section class="card"><div class="head"><span>What it can see</span></div><div class="body"><dl id="scope"></dl><p style="margin-top:6px">The current run's documents, statuses, reasons, amounts, parties, human notes and actions. It cannot see your mailbox or anything outside the ledger.</p></div></section>
+      <section class="card"><div class="head"><span>Model</span></div><div class="body"><p id="modelNote"></p></div></section>
+    </aside>
+  </div>
+</main>
+
+<script src="/static/nav.js" data-page="ask" data-title="Ask the agent"></script>
+<script>
+const $ = s => document.querySelector(s);
+const KEY = 'ops-agent-ask';
+let history = [];
+try { history = JSON.parse(sessionStorage.getItem(KEY) || '[]'); } catch (e) { history = []; }
+const SUGGESTIONS = ['How many invoices came in today and what is their total?', 'What is held and why?', 'Total from Acme this run', 'Which customers asked for refunds?', 'What did we spend on the model?', 'Summary of what happened today'];
+$('#sugg').innerHTML = SUGGESTIONS.map(s => `<button type="button" class="q">${s}</button>`).join('');
+$('#sugg').addEventListener('click', e => { const b = e.target.closest('button.q'); if (b) { $('#q').value = b.textContent; $('#askForm').requestSubmit(); } });
+
+function hello() { return `<div class="msg a hello"><b>Ask about the inbox.</b>I answer from the ledger — counts, amounts, what's held and why, a supplier's or customer's history, today's activity. Try one of the questions on the right.</div>`; }
+function renderHistory() {
+  $('#msgs').innerHTML = hello() + history.map(h => h.role === 'user' ? `<div class="msg u">${esc(h.content)}</div>` : `<div class="msg a">${esc(h.content)}${h.meta ? `<small>${esc(h.meta)}</small>` : ''}</div>`).join('');
+  $('#msgs').scrollTop = $('#msgs').scrollHeight;
+}
+function save() { try { sessionStorage.setItem(KEY, JSON.stringify(history.slice(-20))); } catch (e) {} }
+
+async function load() {
+  const st = await api('/status'); renderNavStatus(st);
+  const c = st.counts || {};
+  $('#scope').innerHTML = `<dt>documents</dt><dd>${st.documents}</dd><dt>emails</dt><dd>${st.emails}</dd><dt>waiting</dt><dd>${c.held || 0}</dd><dt>run cost</dt><dd>$${(st.cost_usd || 0).toFixed(3)}</dd>`;
+  $('#modelNote').innerHTML = st.llm === 'fake'
+    ? 'Offline answers — a keyword stand-in is running. Add an Anthropic API key in <a href="/settings">Settings</a> for free-form answers from Claude.'
+    : `<span class="badge model">${esc(st.llm)}</span> answers from a compact view of the ledger (~${st.documents} rows), cached between questions.`;
+  const b = $('#banner'); b.className = 'banner';
+  if (st.llm === 'fake') { b.innerHTML = 'Running with the <b>fake model</b> — answers are limited to a few question types. Add an Anthropic API key in <a href="/settings">Settings</a>.'; b.classList.add('show', 'warn'); }
+}
+$('#askForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const q = $('#q').value.trim(); if (!q) return;
+  $('#q').value = '';
+  history.push({ role: 'user', content: q }); renderHistory();
+  const m = $('#msgs'); const thinking = document.createElement('div'); thinking.className = 'msg a'; thinking.textContent = '…'; m.appendChild(thinking); m.scrollTop = m.scrollHeight;
+  try {
+    const r = await api('/ask', { method: 'POST', body: JSON.stringify({ question: q, history: history.filter(h => h.role === 'user' || h.role === 'assistant').map(h => ({ role: h.role, content: h.content })).slice(-8) }) });
+    history.push({ role: 'assistant', content: r.answer, meta: `${r.model} · ${r.duration_ms} ms · $${r.cost_usd.toFixed(4)}` });
+  } catch (err) { history.push({ role: 'assistant', content: 'Could not answer: ' + err.message }); }
+  save(); renderHistory();
+});
+$('#clearBtn').addEventListener('click', () => { history = []; save(); renderHistory(); $('#q').focus(); });
+renderHistory(); load().catch(e => toast(e.message));
+</script>
+</body>
+</html>
