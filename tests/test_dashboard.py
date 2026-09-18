@@ -24,6 +24,17 @@ def test_dashboard_shape(client):
     assert d["run"]["documents"] == 32
 
 
+def test_ask_scope_and_document_lookup(client):
+    r = client.post("/ask", json={"question": "what is the capital of France?"}).json()
+    assert r["answer"].startswith("I can only answer questions about this inbox")
+    r = client.post("/ask", json={"question": "show me ACME-2099"}).json()
+    assert "doc #" in r["answer"] and "held" in r["answer"] and "1,203.90" in r["answer"]
+    r = client.post("/ask", json={"question": "open doc #9"}).json()
+    assert "IBL-7710" in r["answer"]
+    r = client.post("/ask", json={"question": "show me ZZZ-9999"}).json()
+    assert "can't find" in r["answer"]
+
+
 def test_ask_offline_answers(client):
     r = client.post("/ask", json={"question": "what is held and why?"}).json()
     assert "10 item(s)" in r["answer"] and "IBL-7710" in r["answer"] and r["model"] == "fake"

@@ -33,12 +33,33 @@
   const top = document.createElement('header'); top.className = 'topbar';
   top.innerHTML = `<span id="navCrumbCompany">Northwind Facilities</span><span class="sep">/</span><span class="crumb">${links.find(l => l[0] === page)?.[3] || ''}${title}</span>
     <div class="right"><span class="mono muted" id="navCountdown"></span>
-      <button type="button" class="iconbtn" aria-label="Notifications" id="navBell">${I.bell}</button>
-      <button type="button" class="iconbtn" aria-label="Account" style="width:auto;padding:0 6px 0 3px;gap:6px"><span class="avatar">IA</span>${I.chev}</button></div>`;
+      <div class="menuwrap"><button type="button" class="iconbtn" aria-label="Notifications" aria-haspopup="true" id="navBell">${I.bell}<span class="dot" id="bellDot" hidden></span></button>
+        <div class="menu" id="bellMenu" hidden><div class="mhead"><b>Needs your attention</b><a href="/#waiting" id="bellAll">Review all</a></div><div id="bellList" class="mlist"><div class="muted" style="padding:10px 14px">Loading…</div></div></div></div>
+      <div class="menuwrap"><button type="button" class="iconbtn" aria-label="Account" aria-haspopup="true" id="navUser" style="width:auto;padding:0 6px 0 3px;gap:6px"><span class="avatar" id="navAvatar">IA</span>${I.chev}</button>
+        <div class="menu" id="userMenu" hidden><div class="mhead" style="flex-direction:column;align-items:flex-start;gap:2px"><b id="umName">Imtiaz A.</b><span class="muted" id="umEmail" style="font-size:12px"></span></div>
+          <a class="mitem" href="/settings">${I.gear}<span>Settings</span></a><a class="mitem" href="/inside">${I.help}<span>How the agent works</span></a>
+          <button type="button" class="mitem" id="umLogout"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg><span>Sign out</span></button></div></div></div>`;
   content.appendChild(top);
   existing.forEach(n => content.appendChild(n));
   shell.appendChild(side); shell.appendChild(content);
   document.body.appendChild(shell);
+
+  // menus
+  const toggle = (id, open) => { const m = document.getElementById(id); if (m) m.hidden = open === undefined ? !m.hidden : !open; };
+  const closeMenus = () => { toggle('bellMenu', false); toggle('userMenu', false); };
+  document.getElementById('navBell').addEventListener('click', async e => {
+    e.stopPropagation(); const wasOpen = !document.getElementById('bellMenu').hidden; closeMenus(); if (wasOpen) return; toggle('bellMenu', true);
+    try {
+      const q = await window.api('/queue');
+      const rows = q.items.filter(i => i.status === 'held' || i.status === 'failed').sort((a, b) => new Date(b.received_at) - new Date(a.received_at)).slice(0, 8);
+      document.getElementById('bellList').innerHTML = rows.length ? rows.map(i => `<a class="mitem" href="/#doc-${i.document_id}"><span class="chip c-${i.status}">${i.status}</span><span style="min-width:0"><b style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${window.esc(i.subject)}</b><small class="muted">${window.esc(i.party_name || i.from_addr)}${i.amount ? ' · ' + window.money(i.amount) : ''} · ${window.esc(i.reason || '')}</small></span></a>`).join('')
+        : '<div class="muted" style="padding:12px 14px">Nothing needs a person right now.</div>';
+    } catch (err) { document.getElementById('bellList').innerHTML = '<div class="muted" style="padding:12px 14px">Could not load.</div>'; }
+  });
+  document.getElementById('navUser').addEventListener('click', e => { e.stopPropagation(); const wasOpen = !document.getElementById('userMenu').hidden; closeMenus(); if (!wasOpen) toggle('userMenu', true); });
+  document.addEventListener('click', closeMenus);
+  document.querySelectorAll('.menu').forEach(m => m.addEventListener('click', e => e.stopPropagation()));
+  document.getElementById('umLogout').addEventListener('click', async () => { try { await fetch('/logout', { method: 'POST' }); } catch (e) {} location.href = '/login'; });
 
   window.renderNavStatus = function (s) {
     if (!s) return;
@@ -54,7 +75,11 @@
       ? (s.shadow_mode ? '<span class="badge" style="background:#5B21B6;color:#fff">shadow mode</span>' : '<span class="badge live">agent active</span>')
       : `<span class="badge ${s.app_mode === 'live' ? 'live' : 'demo'}" title="${s.app_mode === 'live' ? 'processing your real inbox' : 'seeded inbox, resets when idle'}">${s.app_mode || 'demo'}</span>${s.shadow_mode ? '<span class="badge" style="background:#5B21B6;color:#fff">shadow</span>' : ''}<span class="badge ${fake ? 'fake' : 'model'}" title="${fake ? 'no Anthropic key — keyword stand-in' : 'Claude is live'}">${fake ? 'fake model' : s.llm}</span>`;
     const held = document.getElementById('navHeld');
-    if (held) { const n = (s.counts && (s.counts.held || 0) + (s.counts.failed || 0)) || 0; held.hidden = !n; held.textContent = n; }
+    const n = (s.counts && (s.counts.held || 0) + (s.counts.failed || 0)) || 0;
+    if (held) { held.hidden = !n; held.textContent = n; }
+    const dot = document.getElementById('bellDot'); if (dot) dot.hidden = !n;
+    const um = document.getElementById('umEmail'); if (um && s.company) um.textContent = s.company.email || '';
+    const av = document.getElementById('navAvatar'); if (av) av.textContent = 'IA';
     const el = document.getElementById('navCountdown');
     if (el) {
       clearInterval(window.__navTimer);

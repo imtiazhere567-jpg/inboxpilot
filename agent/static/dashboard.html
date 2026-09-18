@@ -18,7 +18,8 @@
   @media (max-width:900px){.kpis{grid-template-columns:1fr 1fr}.kpi:nth-child(2){border-right:0}.kpi:nth-child(-n+2){border-bottom:1px solid var(--line)}}
   .two{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:20px}
   @media (max-width:1100px){.two{grid-template-columns:1fr}}
-  .chartcard{padding:18px 20px 14px;display:flex;flex-direction:column;gap:10px}
+  .chartcard{padding:18px 20px 14px;display:flex;flex-direction:column;gap:10px;justify-content:space-between}
+  .chartbody{margin-top:auto}
   .chartcard .top{display:flex;align-items:center;gap:12px}
   .chartcard .top b{font-size:14px;font-weight:800}
   .legend{margin-left:auto;display:flex;gap:14px;font-size:11px;color:var(--muted)}
@@ -327,7 +328,8 @@ $('#outage').addEventListener('change', async e => { try { await api('/outage', 
 $('#resetBtn').addEventListener('click', async () => { if (!confirm('Wipe the current run and replay the 30 seed emails?')) return; try { await api('/reset', { method: 'POST' }); toast('reset started'); closeReview(); setTimeout(load, 800); } catch (e) { toast(e.message); } });
 
 function connect() { const es = new EventSource('/events'); es.addEventListener('changed', () => load().catch(() => {})); es.onerror = () => { es.close(); setTimeout(connect, 3000); }; }
-load().then(() => { const m = location.hash.match(/doc-(\d+)/); if (m) openReview(+m[1]); }).catch(e => toast(e.message)); connect();
+load().then(() => { const m = location.hash.match(/doc-(\d+)/); if (m) openReview(+m[1]); else if (location.hash === '#waiting') { setFilter('held'); $('#tableCard').scrollIntoView({ block: 'start' }); } }).catch(e => toast(e.message)); connect();
+window.addEventListener('hashchange', () => { const m = location.hash.match(/doc-(\d+)/); if (m) openReview(+m[1]); });
 </script>
 </body>
 </html>

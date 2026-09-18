@@ -28,6 +28,11 @@
   .side p{margin:0;font-size:12.5px;color:var(--muted)}
   .side dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:12px}
   .side dt{color:var(--muted)}.side dd{margin:0;font-family:var(--mono)}
+  .side button.c{text-align:left;font:inherit;font-size:12.5px;border:1px solid transparent;background:transparent;border-radius:8px;padding:7px 10px;cursor:pointer;color:var(--text);display:flex;gap:8px;align-items:center;width:100%}
+  .side button.c:hover{background:#FAFAF8}.side button.c.on{background:#EEF2FD;border-color:var(--blue-soft);color:var(--ink);font-weight:700}
+  .side button.c span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.side button.c small{color:var(--muted);font-family:var(--mono);font-size:10.5px}
+  .msg a.doc{color:inherit;font-weight:700;text-decoration:underline;text-decoration-color:var(--blue-soft);text-underline-offset:2px}
+  .msg.u a.doc{color:#fff}
 </style>
 </head>
 <body>
@@ -35,7 +40,7 @@
 <main class="page">
   <div class="page-head">
     <div><h1>Ask the agent</h1><div class="sub">Plain-English questions about the inbox — counts, amounts, what is held and why, a supplier's history. Answers come only from the ledger; nothing is invented.</div></div>
-    <div class="actions"><button class="btn" id="clearBtn" type="button">Clear conversation</button></div>
+    <div class="actions"><button class="btn" id="clearBtn" type="button">Delete this chat</button></div>
   </div>
   <div class="layout">
     <section class="card chat">
@@ -43,6 +48,7 @@
       <form class="askrow" id="askForm"><input id="q" placeholder="e.g. how many invoices came in today and what is their total?" autocomplete="off" autofocus><button class="btn primary" type="submit">Ask</button></form>
     </section>
     <aside class="side">
+      <section class="card"><div class="head"><span>Recent chats</span><button type="button" class="btn small" id="newChat" style="margin-left:auto">New chat</button></div><div class="body" id="convos" style="gap:4px"></div></section>
       <section class="card"><div class="head"><span>Try asking</span></div><div class="body" id="sugg"></div></section>
       <section class="card"><div class="head"><span>What it can see</span></div><div class="body"><dl id="scope"></dl><p style="margin-top:6px">The current run's documents, statuses, reasons, amounts, parties, human notes and actions. It cannot see your mailbox or anything outside the ledger.</p></div></section>
       <section class="card"><div class="head"><span>How it answers</span></div><div class="body"><p id="modelNote"></p></div></section>
@@ -53,46 +59,66 @@
 <script src="/static/nav.js" data-page="ask" data-title="Ask the agent"></script>
 <script>
 const $ = s => document.querySelector(s);
-const KEY = 'ops-agent-ask';
-let history = [];
-try { history = JSON.parse(sessionStorage.getItem(KEY) || '[]'); } catch (e) { history = []; }
-const SUGGESTIONS = ['How many invoices came in today and what is their total?', 'What is held and why?', 'Total from Acme this run', 'Which customers asked for refunds?', 'What did we spend on the model?', 'Summary of what happened today'];
+const KEY = 'ops-agent-chats';
+let chats = [], cur = null, refMap = {};
+try { chats = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch (e) { chats = []; }
+const SUGGESTIONS = ['How many invoices came in today and what is their total?', 'What is held and why?', 'Total from Acme this week', 'Which customers asked for refunds?', 'Show me ACME-2099', 'Summary of what happened today'];
 $('#sugg').innerHTML = SUGGESTIONS.map(s => `<button type="button" class="q">${s}</button>`).join('');
 $('#sugg').addEventListener('click', e => { const b = e.target.closest('button.q'); if (b) { $('#q').value = b.textContent; $('#askForm').requestSubmit(); } });
 
-function hello() { return `<div class="msg a hello"><b>Ask about the inbox.</b>I answer from the ledger — counts, amounts, what's held and why, a supplier's or customer's history, today's activity. Try one of the questions on the right.</div>`; }
+function save() { try { localStorage.setItem(KEY, JSON.stringify(chats.slice(0, 30))); } catch (e) {} }
+function newChat() { cur = { id: Date.now().toString(36), title: 'New chat', at: new Date().toISOString(), messages: [] }; chats.unshift(cur); save(); renderConvos(); renderHistory(); $('#q').focus(); }
+function renderConvos() {
+  $('#convos').innerHTML = chats.length ? chats.map(c => `<button type="button" class="c ${cur && c.id === cur.id ? 'on' : ''}" data-id="${c.id}"><span>${esc(c.title)}</span><small>${new Date(c.at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</small></button>`).join('') : '<p>No chats yet.</p>';
+}
+$('#convos').addEventListener('click', e => { const b = e.target.closest('button.c'); if (!b) return; cur = chats.find(c => c.id === b.dataset.id); renderConvos(); renderHistory(); });
+$('#newChat').addEventListener('click', newChat);
+
+function linkify(text) {
+  let out = esc(text);
+  out = out.replace(/\bdoc\s*#(\d+)\b/gi, (m, id) => `<a class="doc" href="/#doc-${id}" title="open this document">${m}</a>`);
+  out = out.replace(/\b([A-Z]{2,5}-\d{3,6})\b/g, (m) => refMap[m] ? `<a class="doc" href="/#doc-${refMap[m]}" title="open this document">${m}</a>` : m);
+  return out;
+}
+function hello() { return `<div class="msg a hello"><b>Ask about the inbox.</b>I answer from the ledger — counts, amounts, what's held and why, a supplier's or customer's history, today's activity. Mention a reference like ACME-2031 or "doc #12" to open a specific document.</div>`; }
 function renderHistory() {
-  $('#msgs').innerHTML = hello() + history.map(h => h.role === 'user' ? `<div class="msg u">${esc(h.content)}</div>` : `<div class="msg a">${esc(h.content)}${h.meta ? `<small>${esc(h.meta)}</small>` : ''}</div>`).join('');
+  const msgs = cur ? cur.messages : [];
+  $('#msgs').innerHTML = hello() + msgs.map(h => h.role === 'user' ? `<div class="msg u">${esc(h.content)}</div>` : `<div class="msg a">${linkify(h.content)}${h.meta ? `<small>${esc(h.meta)}</small>` : ''}</div>`).join('');
   $('#msgs').scrollTop = $('#msgs').scrollHeight;
 }
-function save() { try { sessionStorage.setItem(KEY, JSON.stringify(history.slice(-20))); } catch (e) {} }
 
 async function load() {
-  const st = await api('/status'); renderNavStatus(st);
+  const [st, q] = await Promise.all([api('/status'), api('/queue')]);
+  renderNavStatus(st);
+  refMap = {}; q.items.forEach(i => { if (i.ref) refMap[i.ref] = i.document_id; });
   const c = st.counts || {};
-  $('#scope').innerHTML = `<dt>documents</dt><dd>${st.documents}</dd><dt>emails</dt><dd>${st.emails}</dd><dt>waiting</dt><dd>${c.held || 0}</dd><dt>run cost</dt><dd>$${(st.cost_usd || 0).toFixed(3)}</dd>`;
+  $('#scope').innerHTML = `<dt>documents</dt><dd>${st.documents}</dd><dt>emails</dt><dd>${st.emails}</dd><dt>waiting</dt><dd>${c.held || 0}</dd><dt>AI cost</dt><dd>$${(st.cost_usd || 0).toFixed(3)}</dd>`;
   $('#modelNote').innerHTML = st.presentation
-    ? 'Answers are produced only from the ledger of this inbox — counts, amounts, statuses, reasons and history. Nothing outside it.'
+    ? 'Answers are produced only from the ledger of this inbox — counts, amounts, statuses, reasons and history. Anything outside it is politely declined.'
     : st.llm === 'fake'
       ? 'Offline answers — a keyword stand-in is running. Add an Anthropic API key in <a href="/settings">Settings</a> for free-form answers from Claude.'
-      : `<span class="badge model">${esc(st.llm)}</span> answers from a compact view of the ledger (~${st.documents} rows), cached between questions.`;
+      : `<span class="badge model">${esc(st.llm)}</span> answers from a compact view of the ledger (~${st.documents} rows). Questions outside the inbox are declined.`;
   const b = $('#banner'); b.className = 'banner';
   if (st.llm === 'fake' && !st.presentation) { b.innerHTML = 'Running with the <b>fake model</b> — answers are limited to a few question types. Add an Anthropic API key in <a href="/settings">Settings</a>.'; b.classList.add('show', 'warn'); }
+  renderHistory();
 }
 $('#askForm').addEventListener('submit', async e => {
   e.preventDefault();
   const q = $('#q').value.trim(); if (!q) return;
+  if (!cur) newChat();
   $('#q').value = '';
-  history.push({ role: 'user', content: q }); renderHistory();
+  cur.messages.push({ role: 'user', content: q });
+  if (cur.title === 'New chat') { cur.title = q.length > 48 ? q.slice(0, 46) + '…' : q; cur.at = new Date().toISOString(); }
+  renderConvos(); renderHistory();
   const m = $('#msgs'); const thinking = document.createElement('div'); thinking.className = 'msg a'; thinking.textContent = '…'; m.appendChild(thinking); m.scrollTop = m.scrollHeight;
   try {
-    const r = await api('/ask', { method: 'POST', body: JSON.stringify({ question: q, history: history.filter(h => h.role === 'user' || h.role === 'assistant').map(h => ({ role: h.role, content: h.content })).slice(-8) }) });
-    history.push({ role: 'assistant', content: r.answer, meta: window.PRESENT ? `${r.duration_ms} ms · $${r.cost_usd.toFixed(4)}` : `${r.model} · ${r.duration_ms} ms · $${r.cost_usd.toFixed(4)}` });
-  } catch (err) { history.push({ role: 'assistant', content: 'Could not answer: ' + err.message }); }
+    const r = await api('/ask', { method: 'POST', body: JSON.stringify({ question: q, history: cur.messages.map(h => ({ role: h.role, content: h.content })).slice(-8) }) });
+    cur.messages.push({ role: 'assistant', content: r.answer, meta: window.PRESENT ? `${r.duration_ms} ms · $${r.cost_usd.toFixed(4)}` : `${r.model} · ${r.duration_ms} ms · $${r.cost_usd.toFixed(4)}` });
+  } catch (err) { cur.messages.push({ role: 'assistant', content: 'Could not answer: ' + err.message }); }
   save(); renderHistory();
 });
-$('#clearBtn').addEventListener('click', () => { history = []; save(); renderHistory(); $('#q').focus(); });
-renderHistory(); load().catch(e => toast(e.message));
+$('#clearBtn').addEventListener('click', () => { if (!cur) return; chats = chats.filter(c => c.id !== cur.id); cur = chats[0] || null; save(); renderConvos(); renderHistory(); });
+cur = chats[0] || null; renderConvos(); renderHistory(); load().catch(e => toast(e.message));
 </script>
 </body>
 </html>
