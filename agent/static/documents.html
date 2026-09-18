@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ops Agent — documents</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/app.css">
+<style>
+  .kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .kpi{padding:12px 18px;display:flex;flex-direction:column;gap:3px;border-right:1px solid var(--line);cursor:pointer}
+  .kpi:last-child{border-right:0}.kpi:hover{background:#FAFAF8}.kpi.on{background:#EEF2FD}
+  .kpi small{font-size:11.5px;font-weight:600;color:var(--muted)}
+  .kpi b{font-family:var(--mono);font-size:22px;font-weight:600;line-height:1.15}
+  .kpi.hold b{color:var(--hold)}.kpi.bad b{color:var(--bad)}
+  @media (max-width:900px){.kpis{grid-template-columns:1fr 1fr 1fr}}
+  .tablecard{display:flex;flex-direction:column;overflow:hidden}
+  .tabs{display:flex;align-items:center;gap:2px;padding:4px 12px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .tabs button{padding:10px 12px;border:0;border-bottom:2px solid transparent;background:transparent;font:inherit;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;margin-bottom:-1px}
+  .tabs button.on{border-bottom-color:var(--ink);color:var(--ink);font-weight:800}
+  .tabs .tools{margin-left:auto;display:flex;gap:8px;align-items:center;padding:4px 0;flex-wrap:wrap}
+  .tabs select{height:32px;border:1px solid var(--line-strong);border-radius:8px;padding:0 8px;background:#fff;font:inherit;font-size:12px;font-weight:700}
+  .search{display:flex;align-items:center;gap:8px;height:32px;padding:0 10px;border:1px solid var(--line-strong);border-radius:8px;color:var(--muted)}
+  .search input{width:170px;border:0;outline:none;font:inherit;font-size:12px;background:transparent;color:var(--ink)}
+  td.why{color:var(--text)}
+  tr.click{cursor:pointer}tr.click:hover{background:#FAFAF8}tr.sel{background:#EEF2FD}
+  .doc b{display:block}.doc small{font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .empty{color:var(--muted);padding:22px;text-align:center}
+  .count{font-size:12px;color:var(--muted);padding:8px 16px;border-top:1px solid var(--line);font-family:var(--mono)}
+</style>
+</head>
+<body>
+<main class="page">
+  <div class="page-head">
+    <div><h1>Documents</h1><div class="sub" id="sub">Every invoice, complaint and payment notice the agent has processed, with its decision, reason and where it went.</div></div>
+    <div class="actions"><a class="btn" href="/ledger?format=csv"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>Export CSV</a></div>
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <section class="card tablecard">
+    <div class="tabs" id="tabs">
+      <button data-f="all" class="on" type="button">All</button><button data-f="held" type="button">Waiting</button><button data-f="handled" type="button">Handled</button><button data-f="human" type="button">Human decisions</button><button data-f="ignore" type="button">Ignored</button><button data-f="failed" type="button">Failed</button>
+      <div class="tools">
+        <select id="period" aria-label="Time period"><option value="all">All time</option><option value="today">Today</option><option value="7d">Last 7 days</option><option value="30d">Last 30 days</option></select>
+        <select id="type" aria-label="Document type"><option value="all">All types</option><option value="supplier_invoice">Invoices</option><option value="customer_dispute">Complaints</option><option value="remittance">Payment notices</option></select>
+        <label class="search"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="search" id="q" placeholder="Search reference, party, reason" aria-label="Search documents"></label>
+      </div>
+    </div>
+    <div style="overflow:auto"><table><thead><tr><th style="width:44px">#</th><th>Document</th><th>From</th><th>Status</th><th>Amount</th><th>Why</th><th>Received</th></tr></thead><tbody id="rows"></tbody></table></div>
+    <div class="count" id="count"></div>
+  </section>
+</main>
+
+<script src="/static/nav.js" data-page="documents" data-title="Documents"></script>
+<script src="/static/review.js"></script>
+<script>
+const $ = s => document.querySelector(s);
+let items = [], filter = 'all', sel = null;
+const typeLabel = t => ({supplier_invoice:'invoice', customer_dispute:'complaint', remittance:'payment advice', credit_note:'credit note', ignore:'ignored', unknown:'unknown'})[t] || (t || '—');
+const statusLabel = s => ({auto_approved:'Auto', executed:'Executed', held:'Held', approved:'Approved', rejected:'Rejected', failed:'Failed', ignore:'Ignored', shadow:'Shadow', received:'Received'})[s] || s;
+const chip = (s) => `<span class="chip c-${s}">${statusLabel(s)}</span>`;
+
+async function load() {
+  const [st, q] = await Promise.all([api('/status'), api('/queue')]);
+  renderNavStatus(st); items = q.items;
+  const c = st.counts || {};
+  const handled = (c.executed || 0) + (c.auto_approved || 0) + (c.approved || 0), waiting = c.held || 0, human = items.filter(i => i.human_override).length, ignored = c.ignore || 0, failed = c.failed || 0;
+  $('#kpis').innerHTML = `
+    <div class="kpi ${filter==='all'?'on':''}" data-f="all"><small>All documents</small><b>${items.length}</b></div>
+    <div class="kpi ${filter==='handled'?'on':''}" data-f="handled"><small>Handled by the agent</small><b>${handled}</b></div>
+    <div class="kpi hold ${filter==='held'?'on':''}" data-f="held"><small>Waiting for you</small><b>${waiting}</b></div>
+    <div class="kpi ${filter==='human'?'on':''}" data-f="human"><small>Human decisions</small><b>${human}</b></div>
+    <div class="kpi ${failed ? 'bad' : ''} ${filter==='failed'?'on':''}" data-f="failed"><small>Failed</small><b>${failed}</b></div>`;
+  renderTable();
+}
+function setFilter(f) { filter = f; document.querySelectorAll('#tabs button[data-f]').forEach(x => x.classList.toggle('on', x.dataset.f === f)); document.querySelectorAll('.kpi[data-f]').forEach(x => x.classList.toggle('on', x.dataset.f === f)); renderTable(); }
+function renderTable() {
+  const q = ($('#q').value || '').toLowerCase(), period = $('#period').value, type = $('#type').value;
+  let rows = items;
+  if (filter === 'held') rows = rows.filter(r => r.status === 'held');
+  else if (filter === 'handled') rows = rows.filter(r => ['executed', 'approved', 'auto_approved'].includes(r.status));
+  else if (filter === 'human') rows = rows.filter(r => r.human_override);
+  else if (filter === 'ignore') rows = rows.filter(r => r.status === 'ignore');
+  else if (filter === 'failed') rows = rows.filter(r => r.status === 'failed');
+  else if (filter === 'shadow') rows = rows.filter(r => r.status === 'shadow');
+  if (type !== 'all') rows = rows.filter(r => r.doc_type === type);
+  if (period !== 'all') { const start = new Date(); start.setHours(0, 0, 0, 0); if (period === '7d') start.setDate(start.getDate() - 6); if (period === '30d') start.setDate(start.getDate() - 29); rows = rows.filter(r => new Date(r.received_at) >= start); }
+  if (q) rows = rows.filter(r => [r.subject, r.filename, r.party_name, r.from_addr, r.reason, r.ref].join(' ').toLowerCase().includes(q));
+  rows = rows.slice().sort((a, b) => new Date(b.received_at) - new Date(a.received_at));
+  $('#rows').innerHTML = rows.map(r => `<tr class="click ${sel === r.document_id ? 'sel' : ''}" data-id="${r.document_id}">
+    <td class="mono muted">${r.seed_no ?? r.document_id}</td>
+    <td class="doc"><b>${esc(r.ref ? r.ref + ' ' + typeLabel(r.doc_type) : r.subject)}</b><small>${esc(r.filename === 'email-body.txt' ? 'email body' : r.filename)}</small></td>
+    <td>${esc(r.party_name || r.from_addr)}</td>
+    <td>${chip(r.status)}${r.injection ? ' <span class="chip inj">injection blocked</span>' : ''}${r.human_override ? ' <span class="chip human">human</span>' : ''}${r.simulated && !window.PRESENT ? ' <span class="chip sim">sim</span>' : ''}</td>
+    <td class="mono">${r.amount ? money(r.amount) : '—'}</td>
+    <td class="why">${esc(r.reason || '')}</td>
+    <td class="mono muted">${new Date(r.received_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</td></tr>`).join('') || '<tr><td colspan="7" class="empty">Nothing matches.</td></tr>';
+  $('#count').textContent = `${rows.length} of ${items.length} documents`;
+}
+$('#rows').addEventListener('click', e => { const tr = e.target.closest('tr[data-id]'); if (tr) Review.open(+tr.dataset.id); });
+$('#kpis').addEventListener('click', e => { const k = e.target.closest('.kpi[data-f]'); if (k) setFilter(k.dataset.f); });
+$('#tabs').addEventListener('click', e => { const b = e.target.closest('button[data-f]'); if (b) setFilter(b.dataset.f); });
+['#q', '#period', '#type'].forEach(s => $(s).addEventListener(s === '#q' ? 'input' : 'change', renderTable));
+Review.onChange = load; Review.onSelect = id => { sel = id; renderTable(); };
+const hashFilter = { '#waiting': 'held', '#handled': 'handled', '#human': 'human', '#ignore': 'ignore', '#failed': 'failed', '#shadow': 'shadow' };
+function connect() { const es = new EventSource('/events'); es.addEventListener('changed', () => load().catch(() => {})); es.onerror = () => { es.close(); setTimeout(connect, 3000); }; }
+load().then(() => { if (hashFilter[location.hash]) setFilter(hashFilter[location.hash]); }).catch(e => toast(e.message)); connect();
+</script>
+</body>
+</html>

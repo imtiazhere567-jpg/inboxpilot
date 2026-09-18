@@ -16,14 +16,15 @@
     logo: '<svg width="26" height="26" viewBox="0 0 28 28" fill="none" aria-hidden="true"><rect x="2" y="2" width="24" height="24" rx="7" fill="#15171A"/><path d="M8 14.5 12 18.5 20 9.5" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   };
   I.chat = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 21l1.9-5.4A8 8 0 1 1 21 12z"/></svg>';
-  const links = [['dashboard', '/', 'Dashboard', I.dash], ['ask', '/ask', 'Ask the agent', I.chat], ['directory', '/directory', 'Suppliers & customers', I.people], ['settings', '/settings', 'Settings', I.gear]];
+  I.docs = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>';
+  const links = [['dashboard', '/', 'Dashboard', I.dash], ['documents', '/documents', 'Documents', I.docs], ['ask', '/ask', 'Ask the agent', I.chat], ['directory', '/directory', 'Suppliers & customers', I.people], ['settings', '/settings', 'Settings', I.gear]];
 
   // Build the shell around whatever the page already put in <body>
   const existing = Array.from(document.body.childNodes).filter(n => n !== script && !(n.nodeType === 1 && n.tagName === 'SCRIPT' && n !== script));
   const shell = document.createElement('div'); shell.className = 'shell';
   const side = document.createElement('nav'); side.className = 'sidebar'; side.setAttribute('aria-label', 'Main');
   side.innerHTML = `<a class="brand" href="/">${I.logo}<span>Ops Agent</span></a>
-    ${links.map(([k, href, label, ic]) => `<a class="nav ${k === page ? 'on' : ''}" href="${href}" ${k === page ? 'aria-current="page"' : ''}>${ic}<span>${label}</span>${k === 'dashboard' ? '<span class="cnt" id="navHeld" hidden title="waiting for a person"></span>' : ''}</a>`).join('')}
+    ${links.map(([k, href, label, ic]) => `<a class="nav ${k === page ? 'on' : ''}" href="${href}" ${k === page ? 'aria-current="page"' : ''}>${ic}<span>${label}</span>${k === 'documents' ? '<span class="cnt" id="navHeld" hidden title="waiting for a person"></span>' : ''}</a>`).join('')}
     <div class="foot">
       <div class="ws"><span class="mark" id="navMark">NF</span><span><b id="navCompany">Northwind Facilities</b><small id="navEmail">ops@northwindfacilities.co.uk</small></span></div>
       <div class="badges" id="navBadges"></div>
@@ -34,7 +35,7 @@
   top.innerHTML = `<span id="navCrumbCompany">Northwind Facilities</span><span class="sep">/</span><span class="crumb">${links.find(l => l[0] === page)?.[3] || ''}${title}</span>
     <div class="right"><span class="mono muted" id="navCountdown"></span>
       <div class="menuwrap"><button type="button" class="iconbtn" aria-label="Notifications" aria-haspopup="true" id="navBell">${I.bell}<span class="dot" id="bellDot" hidden></span></button>
-        <div class="menu" id="bellMenu" hidden><div class="mhead"><b>Needs your attention</b><a href="/#waiting" id="bellAll">Review all</a></div><div id="bellList" class="mlist"><div class="muted" style="padding:10px 14px">Loading…</div></div></div></div>
+        <div class="menu" id="bellMenu" hidden><div class="mhead"><b>Needs your attention</b><a href="/documents#waiting" id="bellAll">Review all</a></div><div id="bellList" class="mlist"><div class="muted" style="padding:10px 14px">Loading…</div></div></div></div>
       <div class="menuwrap"><button type="button" class="iconbtn" aria-label="Account" aria-haspopup="true" id="navUser" style="width:auto;padding:0 6px 0 3px;gap:6px"><span class="avatar" id="navAvatar">IA</span>${I.chev}</button>
         <div class="menu" id="userMenu" hidden><div class="mhead" style="flex-direction:column;align-items:flex-start;gap:2px"><b id="umName">Imtiaz A.</b><span class="muted" id="umEmail" style="font-size:12px"></span></div>
           <a class="mitem" href="/settings">${I.gear}<span>Settings</span></a><a class="mitem" href="/inside">${I.help}<span>How the agent works</span></a>
@@ -52,7 +53,7 @@
     try {
       const q = await window.api('/queue');
       const rows = q.items.filter(i => i.status === 'held' || i.status === 'failed').sort((a, b) => new Date(b.received_at) - new Date(a.received_at)).slice(0, 8);
-      document.getElementById('bellList').innerHTML = rows.length ? rows.map(i => `<a class="mitem" href="/#doc-${i.document_id}"><span class="chip c-${i.status}">${i.status}</span><span style="min-width:0"><b style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${window.esc(i.subject)}</b><small class="muted">${window.esc(i.party_name || i.from_addr)}${i.amount ? ' · ' + window.money(i.amount) : ''} · ${window.esc(i.reason || '')}</small></span></a>`).join('')
+      document.getElementById('bellList').innerHTML = rows.length ? rows.map(i => `<a class="mitem" href="/documents#doc-${i.document_id}"><span class="chip c-${i.status}">${i.status}</span><span style="min-width:0"><b style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${window.esc(i.subject)}</b><small class="muted">${window.esc(i.party_name || i.from_addr)}${i.amount ? ' · ' + window.money(i.amount) : ''} · ${window.esc(i.reason || '')}</small></span></a>`).join('')
         : '<div class="muted" style="padding:12px 14px">Nothing needs a person right now.</div>';
     } catch (err) { document.getElementById('bellList').innerHTML = '<div class="muted" style="padding:12px 14px">Could not load.</div>'; }
   });

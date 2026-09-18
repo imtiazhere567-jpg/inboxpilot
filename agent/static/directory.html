@@ -162,7 +162,7 @@ async function showHistory(p) {
     <div><small>Handled by the agent</small><b>${(by.executed || 0) + (by.auto_approved || 0)}</b></div>
     <div><small>Waiting / rejected</small><b>${(by.held || 0) + (by.rejected || 0)}</b></div>`;
   $('#histRows').innerHTML = h.documents.map(d => `<li>
-    <span class="t"><a href="/#doc-${d.document_id}">${esc(d.ref || d.subject)}</a> <span class="chip c-${d.status}">${d.status}</span>${d.human ? ' <span class="chip human">human</span>' : ''}</span>
+    <span class="t"><a href="/documents#doc-${d.document_id}">${esc(d.ref || d.subject)}</a> <span class="chip c-${d.status}">${d.status}</span>${d.human ? ' <span class="chip human">human</span>' : ''}</span>
     <span class="mono">${d.amount ? money(d.amount) : ''}</span>
     <span class="r">${typeLabel(d.doc_type)} · ${esc(d.reason || '')}</span>
     <span class="m">${new Date(d.received_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}${d.external.length ? ' · ' + esc(d.external.map(x => { const [sys, id] = x.split(':'); return actionLabel({ system: sys, external_id: id }); }).join(' · ')) : ''}</span>

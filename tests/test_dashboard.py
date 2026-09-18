@@ -74,11 +74,11 @@ def test_live_mode_blocks_reset(client):
 
 
 def test_pages_serve(client):
-    for path, needle in (("/", "Where the documents went"), ("/ask", "Ask the agent"), ("/settings", "Gmail inbox"), ("/inside", "guardrails")):
+    for path, needle in (("/", "Where the documents went"), ("/documents", "Human decisions"), ("/ask", "Ask the agent"), ("/settings", "Gmail inbox"), ("/inside", "guardrails")):
         r = client.get(path)
         assert r.status_code == 200 and needle.lower() in r.text.lower(), path
 
 
 def test_inbox_redirects_to_dashboard(client):
     r = client.get("/inbox", follow_redirects=False)
-    assert r.status_code == 307 and r.headers["location"] == "/"
+    assert r.status_code == 307 and r.headers["location"] == "/documents"

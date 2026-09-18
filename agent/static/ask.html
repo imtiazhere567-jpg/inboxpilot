@@ -76,8 +76,8 @@ $('#newChat').addEventListener('click', newChat);
 
 function linkify(text) {
   let out = esc(text);
-  out = out.replace(/\bdoc\s*#(\d+)\b/gi, (m, id) => `<a class="doc" href="/#doc-${id}" title="open this document">${m}</a>`);
-  out = out.replace(/\b([A-Z]{2,5}-\d{3,6})\b/g, (m) => refMap[m] ? `<a class="doc" href="/#doc-${refMap[m]}" title="open this document">${m}</a>` : m);
+  out = out.replace(/\bdoc\s*#(\d+)\b/gi, (m, id) => `<a class="doc" href="/documents#doc-${id}" title="open this document">${m}</a>`);
+  out = out.replace(/\b([A-Z]{2,5}-\d{3,6})\b/g, (m) => refMap[m] ? `<a class="doc" href="/documents#doc-${refMap[m]}" title="open this document">${m}</a>` : m);
   return out;
 }
 function hello() { return `<div class="msg a hello"><b>Ask about the inbox.</b>I answer from the ledger — counts, amounts, what's held and why, a supplier's or customer's history, today's activity. Mention a reference like ACME-2031 or "doc #12" to open a specific document.</div>`; }
