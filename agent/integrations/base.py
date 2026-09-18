@@ -42,4 +42,6 @@ def simulated_id(system: str) -> str:
         return str(48210 + n)
     if system == "slack":
         return f"C04OPSAG:{time.time():.6f}"
+    if system == "email":
+        return f"reply-{int(time.time())}-{n}@ops-agent.mail"
     return f"{system}-{n}"

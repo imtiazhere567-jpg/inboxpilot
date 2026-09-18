@@ -109,6 +109,28 @@ class GmailClient:
         return msg_id.strip("<>")
 
 
+    def send_reply(self, to: str, subject: str, body: str, in_reply_to: str | None = None) -> str:
+        """Send a plain-text reply from the ops mailbox. Returns the Message-ID."""
+        msg = EmailMessage()
+        msg_id = make_msgid(domain="ops-agent.mail")
+        msg["Message-ID"] = msg_id
+        msg["From"] = self.s.gmail_address
+        msg["To"] = to
+        msg["Subject"] = subject
+        if in_reply_to:
+            msg["In-Reply-To"] = in_reply_to
+            msg["References"] = in_reply_to
+        msg.set_content(body)
+        try:
+            with smtplib.SMTP(self.s.gmail_smtp_host, self.s.gmail_smtp_port, timeout=30) as smtp:
+                smtp.starttls()
+                smtp.login(self.s.gmail_address, self.s.gmail_app_password)
+                smtp.send_message(msg)
+        except Exception as exc:  # noqa: BLE001
+            raise IntegrationError(f"gmail smtp: {exc}") from exc
+        return msg_id.strip("<>")
+
+
 def _mime(filename: str) -> tuple[str, str]:
     f = filename.lower()
     if f.endswith(".pdf"):

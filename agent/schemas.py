@@ -153,6 +153,14 @@ class LedgerRow(BaseModel):
 class ReviewDecision(BaseModel):
     note: str = Field(min_length=3, max_length=500)
     by: str = "demo"
+    send_reply: bool = False
+    reply_subject: str | None = None
+    reply_body: str | None = None
+
+
+class ReplyBody(BaseModel):
+    subject: str = Field(min_length=1, max_length=200)
+    body: str = Field(min_length=10, max_length=5000)
 
 
 class InjectEmail(BaseModel):

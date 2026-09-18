@@ -44,7 +44,7 @@
   .hist li:last-child{border-bottom:0}
   .hist .t{font-weight:700}.hist .r{grid-column:1/-1;color:var(--text);font-size:12px}
   .hist .m{font-family:var(--mono);color:var(--muted);font-size:11px}
-  .hist a{text-decoration:none;color:inherit}.hist a:hover{text-decoration:underline}
+  .hist li[data-id]{cursor:pointer;margin:0 -8px;padding-left:8px;padding-right:8px;border-radius:8px}.hist li[data-id]:hover{background:#FAFAF8}
 </style>
 </head>
 <body>
@@ -161,13 +161,14 @@ async function showHistory(p) {
     <div><small>Documents</small><b>${h.count}</b></div>
     <div><small>Handled by the agent</small><b>${(by.executed || 0) + (by.auto_approved || 0)}</b></div>
     <div><small>Waiting / rejected</small><b>${(by.held || 0) + (by.rejected || 0)}</b></div>`;
-  $('#histRows').innerHTML = h.documents.map(d => `<li>
-    <span class="t"><a href="/inbox#doc-${d.document_id}">${esc(d.ref || d.subject)}</a> <span class="chip c-${d.status}">${d.status}</span>${d.human ? ' <span class="chip human">human</span>' : ''}</span>
+  $('#histRows').innerHTML = h.documents.map(d => `<li data-id="${d.document_id}" title="open this document">
+    <span class="t">${esc(d.ref || d.subject)} <span class="chip c-${d.status}">${d.status}</span>${d.human ? ' <span class="chip human">human</span>' : ''}</span>
     <span class="mono">${d.amount ? money(d.amount) : ''}</span>
     <span class="r">${typeLabel(d.doc_type)} · ${esc(d.reason || '')}</span>
     <span class="m">${new Date(d.received_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}${d.external.length ? ' · ' + esc(d.external.map(x => { const [sys, id] = x.split(':'); return actionLabel({ system: sys, external_id: id }); }).join(' · ')) : ''}</span>
   </li>`).join('') || '<li class="empty">No documents from this party yet.</li>';
 }
+$('#histRows').addEventListener('click', e => { const li = e.target.closest('li[data-id]'); if (li) location.href = '/inbox#doc-' + li.dataset.id; });
 $('#newBtn').addEventListener('click', () => openDrawer(null));
 $('#rows').addEventListener('click', e => { const tr = e.target.closest('tr[data-id]'); if (tr) openDrawer(items.find(x => x.id === +tr.dataset.id)); });
 

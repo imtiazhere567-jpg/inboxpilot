@@ -44,7 +44,7 @@ from agent import __version__, events
 from agent.config import get_settings
 from agent.db import ping, session_scope
 from agent.models import Document, ReviewNote, Rule
-from agent.schemas import HealthResponse, InjectEmail, ReviewDecision
+from agent.schemas import HealthResponse, InjectEmail, ReplyBody, ReviewDecision
 from agent.service import ledger, ledger_csv, queue, review_extras, review_item, status, touch_interaction
 
 log = logging.getLogger("ops_agent")
@@ -295,8 +295,12 @@ def approve(document_id: int, body: ReviewDecision, request: Request, _: None = 
         s.add(ReviewNote(document_id=doc.id, action="approve", note=body.note, by=body.by))
         s.flush()
         execute_actions(s, doc)
+        if body.send_reply and doc.doc_type == "customer_dispute" and body.reply_subject and body.reply_body:
+            from agent.pipeline.actions import send_reply
+
+            send_reply(s, doc, body.reply_subject.strip(), body.reply_body.strip())
         result = {"document_id": doc.id, "status": doc.status, "reason": doc.reason,
-                  "actions": [{"system": a.system, "status": a.status, "external_id": a.external_id, "error": a.error} for a in doc.actions]}
+                  "actions": [{"system": a.system, "status": a.status, "external_id": a.external_id, "error": a.error, "result": a.result} for a in doc.actions]}
     events.bump(f"approve #{document_id}")
     return result
 
@@ -313,6 +317,25 @@ def reject(document_id: int, body: ReviewDecision, request: Request, _: None = D
         s.add(ReviewNote(document_id=doc.id, action="reject", note=body.note, by=body.by))
         result = {"document_id": doc.id, "status": doc.status, "reason": doc.reason}
     events.bump(f"reject #{document_id}")
+    return result
+
+
+@app.post("/reply/{document_id}")
+def reply(document_id: int, body: ReplyBody, request: Request, _: None = Depends(rate_limited)):
+    """Send (or, in demo mode, record) the reply to a customer complaint. Human-triggered only."""
+    from agent.pipeline.actions import send_reply
+
+    with session_scope() as s:
+        touch_interaction(s)
+        doc = _load_doc(s, document_id)
+        if doc.doc_type != "customer_dispute":
+            raise HTTPException(status_code=409, detail="replies are only sent for customer complaints")
+        if doc.status not in ("executed", "approved", "auto_approved", "held", "shadow"):
+            raise HTTPException(status_code=409, detail=f"cannot reply to a document in status {doc.status}")
+        s.add(ReviewNote(document_id=doc.id, action="retry", note=f"reply sent: {body.subject[:80]}", by="demo"))
+        a = send_reply(s, doc, body.subject.strip(), body.body.strip())
+        result = {"document_id": doc.id, "system": a.system, "status": a.status, "external_id": a.external_id, "error": a.error, "result": a.result}
+    events.bump(f"reply #{document_id}")
     return result
 
 

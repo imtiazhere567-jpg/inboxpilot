@@ -135,6 +135,38 @@ def execute_actions(session: Session, doc: Document, rules: RuleSet | None = Non
     return doc
 
 
+def send_reply(session: Session, doc: Document, subject: str, body: str, rules: RuleSet | None = None) -> Action:
+    """Email the (edited) draft reply to the customer. Only ever called from a human action. Idempotent per document."""
+    from agent.integrations.gmail import GmailClient
+
+    rules = rules or load_rules(session)
+    settings = get_settings()
+    party = _party(session, doc)
+    to = (getattr(party, "contact_email", None) or doc.email.from_addr) if party else doc.email.from_addr
+    doc.draft_reply = f"Subject: {subject}\n\n{body}"
+    prior = _existing_ok(session, doc, "email")
+    if prior is not None:
+        return prior
+    action = Action(document_id=doc.id, system="email", payload={"to": to, "subject": subject})
+    g = GmailClient()
+    live_send = settings.app_mode == "live" and g.configured
+    try:
+        if rules.simulate_outage == "email":
+            raise SimulatedOutage("email")
+        if live_send:
+            mid = g.send_reply(to, subject, body, in_reply_to=doc.email.gmail_message_id)
+            action.external_id, action.result = mid, {"to": to, "sent": True}
+        else:
+            action.external_id, action.result = simulated_id("email"), {"to": to, "simulated": True,
+                                                                          "note": "demo mode / Gmail not connected — reply recorded, not sent"}
+        action.status = "ok"
+    except IntegrationError as exc:
+        action.status, action.error = "failed", str(exc)[:500]
+    session.add(action)
+    session.flush()
+    return action
+
+
 def _was_auto(doc: Document) -> bool:
     return not any(n.action == "approve" for n in doc.review_notes)
 

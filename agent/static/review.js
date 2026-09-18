@@ -78,18 +78,30 @@
         ${extractedRows ? `<div class="box"><h4>Extracted</h4><dl class="kv" style="margin:0">${extractedRows}</dl></div>` : ''}
         ${vr ? `<div class="box"><h4>Verifier — second model</h4><div class="verify ${vr.all_fields_present?'ok':'bad'}">${vr.all_fields_present ? '✓ every extracted value is literally present in the source' : '✗ unsupported: ' + esc((vr.missing_or_unsupported||[]).join(', '))}</div>${vr.notes ? `<div class="muted" style="margin-top:3px">${esc(vr.notes)}</div>` : ''}</div>` : ''}
         <div class="box"><h4>Source — what the agent read</h4><pre>${snippet}</pre></div>
-        ${it.draft_reply ? `<div class="box"><h4>Draft reply — held with the ticket, never auto-sent</h4><pre>${esc(it.draft_reply)}</pre></div>` : ''}
+        ${it.doc_type === 'customer_dispute' && it.draft_reply ? replyBox(it) : ''}
         ${it.actions.length ? `<div class="box"><h4>Where it went</h4>${it.actions.map(a => `<div class="actrow">${chip(a.status==='ok'?'executed':'failed')} <b>${a.status === 'ok' ? esc(actionLabel(a)) : a.system}</b> ${a.result && a.result.url ? `<a href="${esc(a.result.url)}" target="_blank" rel="noopener">open ↗</a>` : ''} ${a.result && a.result.simulated && !window.PRESENT ? '<span class="chip sim">simulated</span>' : ''} ${a.error ? `<span style="color:var(--bad)">${esc(a.error)}</span>` : ''}</div>`).join('')}</div>` : ''}
         ${d.notes && d.notes.length ? `<div class="box"><h4>Human notes</h4>${d.notes.map(n => `<div class="actrow"><b>${n.action}</b> ${esc(n.note)} <span class="muted">· ${n.by} · ${new Date(n.at).toLocaleTimeString('en-GB')}</span></div>`).join('')}</div>` : ''}
         <div class="box"><h4>Timeline</h4><ul class="timeline">${it.timeline.map(t => `<li><b>${esc(t.step)}${t.model ? (t.model === 'fake' ? (window.PRESENT ? '<span class="badge model">ai</span>' : '<span class="chip sim">fake ai</span>') : '<span class="badge model">claude</span>') : ''}</b><span>${new Date(t.at).toLocaleTimeString('en-GB')}${t.duration_ms != null ? ' · ' + t.duration_ms + ' ms' : ''}${t.model && t.model !== 'fake' ? ' · ' + t.model : ''}</span></li>`).join('')}</ul></div>`;
     },
   };
 
+  function splitDraft(draft) { const m = /^Subject:\s*(.*)\n\n([\s\S]*)$/.exec(draft || ''); return m ? { subject: m[1], body: m[2] } : { subject: 'Re: your message', body: draft || '' }; }
+  function replyBox(it) {
+    const d = splitDraft(it.draft_reply), sent = it.actions.find(a => a.system === 'email' && a.status === 'ok');
+    const canDecide = ['held', 'shadow'].includes(it.status), canSendNow = ['executed', 'approved', 'auto_approved'].includes(it.status);
+    if (sent) return `<div class="box"><h4>Reply to the customer</h4><div class="verify ok">✓ Reply sent to ${esc(sent.result && sent.result.to || '')}${sent.result && sent.result.simulated && !window.PRESENT ? ' (simulated)' : ''}</div><pre style="margin-top:6px">${esc(it.draft_reply)}</pre></div>`;
+    return `<div class="box" id="rvReply"><h4>Reply to the customer — drafted by the agent, sent only by you</h4>
+      <label style="display:block;font-size:12px;font-weight:700;margin-top:4px">Subject<input id="rvSubj" class="field-input" style="font-family:inherit;margin-top:3px" value="${esc(d.subject)}"></label>
+      <label style="display:block;font-size:12px;font-weight:700;margin-top:8px">Message<textarea id="rvBodyTxt" style="min-height:150px;font-size:12.5px;margin-top:3px">${esc(d.body)}</textarea></label>
+      ${canDecide ? `<label style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12.5px;font-weight:600;cursor:pointer"><input type="checkbox" id="rvSendOnApprove" checked> Send this reply when I approve</label>` : ''}
+      ${canSendNow ? `<div class="actions" style="margin-top:8px"><button class="btn small primary" type="button" data-sendreply="${it.document_id}">Send reply</button></div>` : ''}
+    </div>`;
+  }
   function nextStep(it) {
     const ex = it.extracted || {}, party = it.party_name || 'the sender';
     let approve;
     if (it.doc_type === 'supplier_invoice') approve = `a bill for <b>${money(ex.total)}</b> against <b>${esc(party)}</b> is created in QuickBooks (ref ${esc(ex.invoice_number || '—')}) and a line is posted to Slack. No payment is made — the bill sits in QuickBooks for the normal payment run.`;
-    else if (it.doc_type === 'customer_dispute') approve = `a ticket is opened in HubSpot on <b>${esc(party)}</b> with the complaint summary${ex.requested_refund_amount ? ` and the <b>${money(ex.requested_refund_amount)}</b> request` : ''}, the draft reply is saved on the ticket (not sent), and Slack is notified. No refund is paid — a person decides that from the ticket.`;
+    else if (it.doc_type === 'customer_dispute') approve = `a ticket is opened in HubSpot on <b>${esc(party)}</b> with the complaint summary${ex.requested_refund_amount ? ` and the <b>${money(ex.requested_refund_amount)}</b> request` : ''}, Slack is notified, and — if the box below is ticked — the reply you see is emailed to the customer. No refund is paid — a person decides that from the ticket.`;
     else if (it.doc_type === 'remittance') approve = `the payment notice is recorded and Slack is told "payment received". Nothing else happens.`;
     else approve = `the item is recorded as approved and Slack is notified.`;
     return `<div class="box"><h4>What happens next</h4><div><b>Approve</b> → ${approve}</div><div style="margin-top:6px"><b>Reject</b> → nothing is posted anywhere; your note and the decision are kept in the ledger.</div></div>`;
@@ -107,13 +119,22 @@
     const note = ($('#rvNote') ? $('#rvNote').value.trim() : '');
     if (note.length < 3) { toast('Please write a short note first'); $('#rvNote').focus(); return; }
     try {
-      const r = await api(`/${action}/${id}`, {method:'POST', body: JSON.stringify({note, by:'demo'})});
+      const payload = {note, by:'demo'};
+      const send = document.getElementById('rvSendOnApprove');
+      if (action === 'approve' && send && send.checked) { payload.send_reply = true; payload.reply_subject = $('#rvSubj').value; payload.reply_body = $('#rvBodyTxt').value; }
+      const r = await api(`/${action}/${id}`, {method:'POST', body: JSON.stringify(payload)});
       if (action === 'approve') {
         const done = (r.actions || []).filter(a => a.status === 'ok').map(a => actionLabel(a));
         const failed = (r.actions || []).filter(a => a.status !== 'ok').map(a => a.system);
         toast(r.status === 'executed' ? `Approved — ${done.join(', ')}` : `Approved but ${failed.join(', ')} failed — retry from the panel`, 4500);
       } else toast('Rejected — nothing posted, decision recorded', 3500);
       await changed();
+    } catch (e) { toast(e.message); }
+  }
+  async function sendReply(id) {
+    try {
+      const r = await api(`/reply/${id}`, { method: 'POST', body: JSON.stringify({ subject: $('#rvSubj').value, body: $('#rvBodyTxt').value }) });
+      toast(r.status === 'ok' ? `Reply sent to ${r.result && r.result.to || 'the customer'}` : 'Could not send: ' + (r.error || ''), 4000); await changed();
     } catch (e) { toast(e.message); }
   }
   async function retry(id) { try { const r = await api(`/retry/${id}`, {method:'POST'}); const done = (r.actions || []).filter(a => a.status === 'ok').map(a => actionLabel(a)); toast(r.status === 'executed' ? `Done — ${done.join(', ')}` : 'Still failing — the system is not reachable', 4500); await changed(); } catch (e) { toast(e.message); } }
@@ -134,9 +155,10 @@
     try { const r = await api(`/api/parties/from_document/${id}?kind=${kind}`, { method: 'POST', body: JSON.stringify(body) }); toast(`added · now ${r.status}`); await changed(); } catch (e) { toast(e.message); }
   }
   drawer.addEventListener('click', e => {
-    const t = e.target.closest('[data-decide],[data-retry],[data-suggest],[data-create],[data-cancel],[data-open]');
+    const t = e.target.closest('[data-decide],[data-retry],[data-suggest],[data-create],[data-cancel],[data-open],[data-sendreply]');
     if (!t) return;
-    if (t.dataset.decide) decide(+t.dataset.id, t.dataset.decide);
+    if (t.dataset.sendreply) sendReply(+t.dataset.sendreply);
+    else if (t.dataset.decide) decide(+t.dataset.id, t.dataset.decide);
     else if (t.dataset.retry) retry(+t.dataset.retry);
     else if (t.dataset.suggest) suggestParty(+t.dataset.suggest);
     else if (t.dataset.create) createParty(+t.dataset.create, t.dataset.kind);

@@ -69,6 +69,26 @@ def test_approve_held_executes(client):
 
 
 @pytest.mark.usefixtures("db")
+def test_approve_complaint_with_reply_and_send_reply_later(client):
+    held = _inject(client, 24)[0]                      # Pinnacle £850 — held
+    r = client.post(f"/approve/{held['id']}", json={"note": "site manager confirmed the leak", "send_reply": True,
+                                                    "reply_subject": "Re: Water damage in server room", "reply_body": "Dear Pinnacle team, we have logged this and an operations lead will call you today."})
+    assert r.status_code == 200 and r.json()["status"] == "executed"
+    systems = {a["system"]: a for a in r.json()["actions"]}
+    assert {"hubspot", "slack", "email"} <= set(systems) and systems["email"]["status"] == "ok"
+    assert systems["email"]["result"]["to"] == "centre.manager@pinnacleoffices.co.uk" and systems["email"]["result"]["simulated"] is True
+    # already-handled complaint: send the reply on its own; second send is idempotent
+    done = _inject(client, 19)[0]
+    assert done["status"] == "executed"
+    r = client.post(f"/reply/{done['id']}", json={"subject": "Re: BWD-0917", "body": "Thanks — we are checking the duplicate charge and will confirm within one working day."})
+    assert r.status_code == 200 and r.json()["status"] == "ok"
+    r2 = client.post(f"/reply/{done['id']}", json={"subject": "Re: BWD-0917", "body": "second attempt should not create a second email action"})
+    assert r2.json()["external_id"] == r.json()["external_id"]
+    inv = _inject(client, 1)[0]
+    assert client.post(f"/reply/{inv['id']}", json={"subject": "x", "body": "not a complaint so this is refused"}).status_code == 409
+
+
+@pytest.mark.usefixtures("db")
 def test_reject_requires_note_and_blocks_approve(client):
     doc = _inject(client, 12)[0]
     assert client.post(f"/reject/{doc['id']}", json={"note": "no"}).status_code == 422  # min_length 3

@@ -102,5 +102,5 @@
   window.esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   window.money = v => (v == null || v === '') ? '—' : '£' + Number(v).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   window.ICONS = I;
-  window.actionLabel = (a) => ({ qbo: 'QuickBooks bill #' + (a.external_id || ''), hubspot: 'HubSpot ticket #' + (a.external_id || ''), slack: 'Slack #ops-agent' })[a.system] || a.system;
+  window.actionLabel = (a) => ({ qbo: 'QuickBooks bill #' + (a.external_id || ''), hubspot: 'HubSpot ticket #' + (a.external_id || ''), slack: 'Slack #ops-agent', email: 'Reply emailed to ' + ((a.result && a.result.to) || 'the customer') })[a.system] || a.system;
 })();
