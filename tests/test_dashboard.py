@@ -83,7 +83,7 @@ def test_live_mode_blocks_reset(client):
 
 
 def test_pages_serve(client):
-    for path, needle in (("/", "Where the documents went"), ("/inbox", "Human decisions"), ("/ask", "Ask the agent"), ("/settings", "Gmail inbox"), ("/inside", "guardrails")):
+    for path, needle in (("/", "Where the documents went"), ("/inbox", "Human decisions"), ("/ask", "Ask the agent"), ("/settings", "Gmail inbox"), ("/inside", "What you need to connect")):
         r = client.get(path)
         assert r.status_code == 200 and needle.lower() in r.text.lower(), path
 

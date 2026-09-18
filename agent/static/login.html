@@ -28,7 +28,7 @@
   <input class="field-input" id="pw" type="password" placeholder="password" autocomplete="current-password" autofocus>
   <button class="btn primary" type="submit">Enter</button>
   <div class="err" id="err"></div>
-  <small><a href="/inside">How the agent works →</a></small>
+  <small><a href="/inside">How it works →</a></small>
 </form>
 <script>
 fetch('/api/brand').then(r => r.json()).then(b => { const el = document.getElementById('brand'); const short = (b.name || '').replace(/\s+(Ltd|Limited|LLP|plc)$/i, ''); el.innerHTML = (b.logo ? `<img src="${b.logo}" alt="" style="width:28px;height:28px;object-fit:contain;border-radius:6px">` : `<span style="width:28px;height:28px;border-radius:7px;background:#15171A;color:#fff;font-size:11px;font-weight:800;display:inline-flex;align-items:center;justify-content:center">${b.initials || ''}</span>`) + short; document.title = short + ' — sign in'; }).catch(() => {});

@@ -28,7 +28,7 @@
     <div class="foot">
       <div class="ws"><span class="mark" id="navMark" style="background:#D97757">IA</span><span><b id="navCompany">Imtiaz A.</b><small id="navEmail">ops@northwindfacilities.co.uk</small></span></div>
       <div class="badges" id="navBadges"></div>
-      <a class="nav" href="/inside" ${page === 'inside' ? 'aria-current="page"' : ''}>${I.help}<span>Under the hood</span></a>
+      <a class="nav" href="/inside" ${page === 'inside' ? 'aria-current="page"' : ''}>${I.help}<span>How it works</span></a>
     </div>`;
   const content = document.createElement('div'); content.className = 'content';
   const top = document.createElement('header'); top.className = 'topbar';
@@ -38,7 +38,7 @@
         <div class="menu" id="bellMenu" hidden><div class="mhead"><b>Needs your attention</b><a href="/inbox#waiting" id="bellAll">Review all</a></div><div id="bellList" class="mlist"><div class="muted" style="padding:10px 14px">Loading…</div></div></div></div>
       <div class="menuwrap"><button type="button" class="iconbtn" aria-label="Account" aria-haspopup="true" id="navUser" style="width:auto;padding:0 6px 0 3px;gap:6px"><span class="avatar" id="navAvatar">IA</span>${I.chev}</button>
         <div class="menu" id="userMenu" hidden><div class="mhead" style="flex-direction:column;align-items:flex-start;gap:2px"><b id="umName">Imtiaz A.</b><span class="muted" id="umEmail" style="font-size:12px"></span></div>
-          <a class="mitem" href="/settings">${I.gear}<span>Settings</span></a><a class="mitem" href="/inside">${I.help}<span>How the agent works</span></a>
+          <a class="mitem" href="/settings">${I.gear}<span>Settings</span></a><a class="mitem" href="/inside">${I.help}<span>How it works</span></a>
           <button type="button" class="mitem" id="umLogout"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg><span>Sign out</span></button></div></div></div>`;
   content.appendChild(top);
   existing.forEach(n => content.appendChild(n));

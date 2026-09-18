@@ -167,4 +167,4 @@ def test_rate_limit(client, settings):
 
 def test_index_and_inside_pages(client):
     assert "Ops Agent" in client.get("/").text
-    assert "guardrail" in client.get("/inside").text.lower()
+    assert "what you need to connect" in client.get("/inside").text.lower()
