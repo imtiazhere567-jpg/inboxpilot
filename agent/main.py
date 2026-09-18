@@ -473,6 +473,18 @@ def api_party_delete(kind: PartyKind, party_id: int, request: Request, _: None =
     return {"items": items}
 
 
+@app.get("/api/parties/{kind}/{party_id}/documents")
+def api_party_history(kind: PartyKind, party_id: int):
+    from agent.parties import party_history
+
+    with session_scope() as s:
+        touch_interaction(s)
+        try:
+            return party_history(s, kind, party_id)
+        except LookupError as exc:
+            raise HTTPException(status_code=404, detail=str(exc))
+
+
 @app.get("/api/parties/suggest/{document_id}")
 def api_party_suggest(document_id: int):
     from agent.parties import suggest_from_document

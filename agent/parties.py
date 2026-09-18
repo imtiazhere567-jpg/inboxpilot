@@ -128,6 +128,39 @@ def upsert_party(session: Session, kind: str, data: dict[str, Any], party_id: in
     return obj
 
 
+def party_history(session: Session, kind: str, party_id: int) -> dict[str, Any]:
+    """Every document attributed to this party (all runs), newest first, plus totals."""
+    from sqlalchemy.orm import selectinload
+
+    from agent.models import Email
+
+    obj = session.get(MODEL[kind], party_id)
+    if obj is None:
+        raise LookupError("no such party")
+    docs = session.scalars(
+        select(Document).options(selectinload(Document.email), selectinload(Document.actions), selectinload(Document.review_notes))
+        .join(Email).where(Document.party_kind == kind, Document.party_id == party_id).order_by(Email.received_at.desc(), Document.id.desc())
+    ).all()
+    rows, total = [], Decimal(0)
+    for d in docs:
+        ex = d.extracted or {}
+        amount = ex.get("total") or ex.get("requested_refund_amount") or ex.get("amount")
+        if amount and d.status not in ("ignore", "rejected"):
+            total += Decimal(str(amount))
+        rows.append({
+            "document_id": d.id, "received_at": d.email.received_at, "subject": d.email.subject, "filename": d.filename,
+            "doc_type": d.doc_type, "ref": ex.get("invoice_number") or ex.get("order_ref"), "amount": amount,
+            "status": d.status, "reason": d.reason, "human": any(n.action in ("approve", "reject") for n in d.review_notes),
+            "external": [f"{a.system}:{a.external_id}" for a in d.actions if a.status == "ok" and a.external_id],
+        })
+    by_status: dict[str, int] = {}
+    for r in rows:
+        by_status[r["status"]] = by_status.get(r["status"], 0) + 1
+    return {"party": {"id": obj.id, "kind": kind, "name": obj.name}, "documents": rows, "count": len(rows),
+            "total_amount": float(total), "by_status": by_status,
+            "first_seen": rows[-1]["received_at"] if rows else None, "last_seen": rows[0]["received_at"] if rows else None}
+
+
 def delete_party(session: Session, kind: str, party_id: int) -> None:
     obj = session.get(MODEL[kind], party_id)
     if obj is None:

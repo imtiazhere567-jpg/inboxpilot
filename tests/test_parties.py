@@ -55,6 +55,17 @@ def test_suggest_and_add_from_document_reprocesses(client):
     assert client.post(f"/api/parties/from_document/{doc['document_id']}?kind=supplier", json={"name": "X", "identifier_patterns": "x.example"}).status_code == 409
 
 
+def test_party_history(client):
+    sup = client.get("/api/parties?kind=supplier").json()["items"]
+    acme = next(p for p in sup if p["name"] == "Acme Supplies Ltd")
+    h = client.get(f"/api/parties/supplier/{acme['id']}/documents").json()
+    assert h["count"] == 3 and h["party"]["name"] == "Acme Supplies Ltd"
+    refs = sorted(d["ref"] for d in h["documents"])
+    assert refs == ["ACME-2031", "ACME-2044", "ACME-2099"]
+    assert h["by_status"].get("held") == 1 and round(h["total_amount"], 2) == round(1239.84 + 1187.28 + 1203.90, 2)
+    assert client.get("/api/parties/supplier/9999/documents").status_code == 404
+
+
 def test_import_needs_connection(client):
     assert client.post("/api/parties/import/qbo").status_code == 409
     assert client.post("/api/parties/import/hubspot").status_code == 409
