@@ -65,6 +65,7 @@ class Document(Base):
     sha256: Mapped[str] = mapped_column(Text)
     mime: Mapped[str | None] = mapped_column(Text)
     source_text: Mapped[str | None] = mapped_column(Text)
+    read_error: Mapped[str | None] = mapped_column(Text)
     doc_type: Mapped[str | None] = mapped_column(Text)
     party_kind: Mapped[str | None] = mapped_column(Text)
     party_id: Mapped[int | None] = mapped_column(Integer)

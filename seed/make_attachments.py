@@ -272,7 +272,7 @@ def build_emails_json(inv_totals: dict[str, dict], manifest: dict[str, dict]) ->
         e["message_id"] = f"seed-{e['seed_no']:02d}"
         for d in e["expected"]["documents"]:
             fn = d["filename"]
-            if fn in inv_totals and d["doc_type"] == "supplier_invoice":
+            if fn in inv_totals and d["doc_type"] == "supplier_invoice" and d.get("party"):
                 d.setdefault("extracted", {}).update({k: inv_totals[fn][k] for k in ("invoice_number", "total", "currency")})
             if fn in manifest:
                 d["sha256"] = manifest[fn]["sha256"]

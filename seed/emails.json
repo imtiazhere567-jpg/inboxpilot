@@ -375,11 +375,6 @@
               "Castle Equipment Hire",
               "Granite Facilities Supplies"
             ],
-            "extracted": {
-              "invoice_number": "TP-77812",
-              "total": "890.00",
-              "currency": "GBP"
-            },
             "sha256": "2f0d8edccbeecdfffff3bedd9e41a6823f92ea558fe538776bdd2a0619d85ac8"
           }
         ],
@@ -408,11 +403,6 @@
             "party": null,
             "status": "held",
             "reason_contains": "no supplier match",
-            "extracted": {
-              "invoice_number": "NSH-0099",
-              "total": "430.00",
-              "currency": "GBP"
-            },
             "sha256": "a8b9c555e3f7130ff7a05b41106d4248c84889b750e8d6979b4846154ec3705e"
           }
         ],

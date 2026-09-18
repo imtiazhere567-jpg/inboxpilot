@@ -61,7 +61,7 @@ The scheduler also resets on `RESET_INTERVAL_MINUTES` when the page has been idl
 |---|---|---|
 | 0 | Repo, schema, settings, FastAPI `/health`, credential list | ✅ |
 | 1 | Seed data: 30 emails + attachments, customers/suppliers/rules CSVs, `test_seed.py` | ✅ |
-| 2 | Agent service: classify/extract/verify/draft, matching, rules; `test_pipeline.py` 30/30 | |
+| 2 | Agent service: classify/extract/verify/draft, matching, rules; `test_pipeline.py` 32/32 | ✅ fake · ⏳ real model |
 | 3 | Gmail intake + inject endpoint, QBO/HubSpot/Slack actions | |
 | 4 | Review page (SSE, approve/reject/retry, ledger, CSV) | |
 | 5 | Shadow mode + idle-aware reset + countdown | |

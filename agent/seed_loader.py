@@ -86,3 +86,18 @@ def read_manifest(path: Path = ATTACHMENTS_DIR / "manifest.json") -> dict[str, d
 
 def attachment_bytes(filename: str) -> bytes:
     return (ATTACHMENTS_DIR / filename).read_bytes()
+
+
+def to_inbound(seed: dict[str, Any], run_tag: str = "") -> "InboundEmail":
+    """Turn a seed email dict into an InboundEmail. run_tag makes the message id unique per demo run."""
+    from agent.pipeline.intake import InboundEmail
+
+    mid = seed["message_id"] + (f"-{run_tag}" if run_tag else "")
+    return InboundEmail(
+        message_id=mid,
+        from_addr=seed["from_addr"],
+        subject=seed["subject"],
+        body_text=seed["body"],
+        attachments=[(fn, attachment_bytes(fn)) for fn in seed["attachments"]],
+        seed_no=seed["seed_no"],
+    )

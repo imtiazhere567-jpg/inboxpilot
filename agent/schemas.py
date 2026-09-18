@@ -50,6 +50,14 @@ class DisputeExtraction(BaseModel):
     tone: Literal["neutral", "frustrated", "angry", "legal_threat"] = "neutral"
 
 
+class RemittanceExtraction(BaseModel):
+    amount: Decimal | None = None
+    currency: str | None = None
+    payment_date: str | None = None
+    invoice_refs: list[str] = Field(default_factory=list)
+    payer_name_on_document: str | None = None
+
+
 class Verification(BaseModel):
     all_fields_present: bool
     missing_or_unsupported: list[str] = Field(default_factory=list, description="Field names not literally present in the source")
@@ -63,10 +71,23 @@ class DraftReply(BaseModel):
 
 # --- pipeline results ------------------------------------------------------------------------------
 
+MatchStatus = Literal["matched", "none", "ambiguous", "name_only"]
+
+
+class MatchResult(BaseModel):
+    status: MatchStatus
+    party_kind: PartyKind | None = None
+    party_id: int | None = None
+    party_name: str | None = None
+    candidates: list[str] = Field(default_factory=list)
+    matched_on: list[str] = Field(default_factory=list, description="Which identifier patterns hit")
+
+
 class RuleOutcome(BaseModel):
     status: DocStatus
     reason: str
     triggered_rules: list[str] = Field(default_factory=list)
+    would_be: DocStatus | None = Field(default=None, description="In shadow mode: the status that would have applied")
 
 
 class TimelineEvent(BaseModel):
