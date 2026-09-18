@@ -155,6 +155,11 @@ def settings_page() -> FileResponse:
     return FileResponse(STATIC_DIR / "settings.html")
 
 
+@app.get("/directory", include_in_schema=False)
+def directory_page() -> FileResponse:
+    return FileResponse(STATIC_DIR / "directory.html")
+
+
 @app.get("/inside", include_in_schema=False)
 def inside() -> FileResponse:
     return FileResponse(DOCS_DIR / "inside.html")
@@ -396,6 +401,120 @@ def api_settings_test(system: Literal["anthropic", "gmail", "slack", "hubspot", 
 
     ok, message = test_connection(system)
     return {"system": system, "ok": ok, "message": message}
+
+
+# --- directory (suppliers & customers) ----------------------------------------------------------------------------
+
+PartyKind = Literal["supplier", "customer"]
+
+
+class PartyBody(BaseModel):
+    name: str
+    identifier_patterns: list[str] | str = []
+    po_amount: float | str | None = None
+    qbo_vendor_id: str | None = None
+    iban_last4: str | None = None
+    contact_email: str | None = None
+    hubspot_company_id: str | None = None
+
+
+@app.get("/api/parties")
+def api_parties(kind: PartyKind = "supplier"):
+    from agent.parties import list_parties
+
+    with session_scope() as s:
+        touch_interaction(s)
+        return {"kind": kind, "items": list_parties(s, kind)}
+
+
+@app.post("/api/parties/{kind}")
+def api_party_create(kind: PartyKind, body: PartyBody, request: Request, _: None = Depends(rate_limited)):
+    from agent.parties import list_parties, upsert_party
+
+    try:
+        with session_scope() as s:
+            obj = upsert_party(s, kind, body.model_dump())
+            pid = obj.id
+            items = list_parties(s, kind)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    events.bump(f"party added {kind} #{pid}")
+    return {"id": pid, "items": items}
+
+
+@app.put("/api/parties/{kind}/{party_id}")
+def api_party_update(kind: PartyKind, party_id: int, body: PartyBody, request: Request, _: None = Depends(rate_limited)):
+    from agent.parties import list_parties, upsert_party
+
+    try:
+        with session_scope() as s:
+            upsert_party(s, kind, body.model_dump(), party_id)
+            items = list_parties(s, kind)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    events.bump(f"party updated {kind} #{party_id}")
+    return {"id": party_id, "items": items}
+
+
+@app.delete("/api/parties/{kind}/{party_id}")
+def api_party_delete(kind: PartyKind, party_id: int, request: Request, _: None = Depends(rate_limited)):
+    from agent.parties import delete_party, list_parties
+
+    try:
+        with session_scope() as s:
+            delete_party(s, kind, party_id)
+            items = list_parties(s, kind)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    events.bump(f"party deleted {kind} #{party_id}")
+    return {"items": items}
+
+
+@app.get("/api/parties/suggest/{document_id}")
+def api_party_suggest(document_id: int):
+    from agent.parties import suggest_from_document
+
+    with session_scope() as s:
+        doc = _load_doc(s, document_id)
+        return suggest_from_document(s, doc)
+
+
+@app.post("/api/parties/from_document/{document_id}")
+def api_party_from_document(document_id: int, body: PartyBody, request: Request, kind: PartyKind = "supplier",
+                            _: None = Depends(rate_limited)):
+    """Create the party, then run the held document through the pipeline again."""
+    from agent.parties import reprocess_document, upsert_party
+
+    try:
+        with session_scope() as s:
+            doc = _load_doc(s, document_id)
+            if doc.status not in ("held", "rejected", "failed"):
+                raise HTTPException(status_code=409, detail=f"document is {doc.status}; only held/rejected/failed items can be reprocessed")
+            obj = upsert_party(s, kind, body.model_dump())
+            pid = obj.id
+            reprocess_document(s, doc)
+            result = {"party_id": pid, "document_id": doc.id, "status": doc.status, "reason": doc.reason}
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    events.bump(f"party from doc #{document_id}")
+    return result
+
+
+@app.post("/api/parties/import/{system}")
+def api_party_import(system: Literal["qbo", "hubspot"], request: Request, _: None = Depends(rate_limited)):
+    from agent.parties import import_from_hubspot, import_from_qbo
+
+    try:
+        with session_scope() as s:
+            result = import_from_qbo(s) if system == "qbo" else import_from_hubspot(s)
+    except LookupError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    except Exception as exc:  # noqa: BLE001 — show the real error on the page
+        raise HTTPException(status_code=502, detail=f"{type(exc).__name__}: {str(exc)[:300]}")
+    events.bump(f"import {system}")
+    return result
 
 
 # --- controls ---------------------------------------------------------------------------------------------------

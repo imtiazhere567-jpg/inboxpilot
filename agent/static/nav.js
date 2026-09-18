@@ -1,7 +1,7 @@
 // Shared top navigation + status badges. Include on every page: <script src="/static/nav.js" data-page="dashboard"></script>
 (function () {
   const page = document.currentScript.dataset.page || '';
-  const links = [['dashboard', '/', 'Dashboard'], ['inbox', '/inbox', 'Inbox & review'], ['settings', '/settings', 'Settings'], ['inside', '/inside', 'Under the hood']];
+  const links = [['dashboard', '/', 'Dashboard'], ['inbox', '/inbox', 'Inbox & review'], ['directory', '/directory', 'Suppliers & customers'], ['settings', '/settings', 'Settings'], ['inside', '/inside', 'Under the hood']];
   const nav = document.createElement('nav');
   nav.className = 'top';
   nav.innerHTML = `<a class="brand" href="/">Ops Agent <span>· invoices &amp; disputes</span></a>

@@ -68,12 +68,31 @@ def load_rules(session: Session, path: Path = SEED_DIR / "rules.csv", overwrite:
     return n
 
 
-def load_all(session: Session, overwrite_rules: bool = False) -> dict[str, int]:
-    return {
+def prune_to_seed(session: Session) -> dict[str, int]:
+    """Demo reset: remove parties added during the run (e.g. from a held item) so the seed story replays exactly."""
+    import csv as _csv
+
+    removed = {"suppliers": 0, "customers": 0}
+    for model, path, key in ((Supplier, SEED_DIR / "suppliers.csv", "suppliers"), (Customer, SEED_DIR / "customers.csv", "customers")):
+        with path.open(newline="", encoding="utf-8") as f:
+            keep = {row["name"] for row in _csv.DictReader(f)}
+        for obj in session.scalars(select(model)):
+            if obj.name not in keep:
+                session.delete(obj)
+                removed[key] += 1
+    session.flush()
+    return removed
+
+
+def load_all(session: Session, overwrite_rules: bool = False, prune: bool = False) -> dict[str, int]:
+    out = {
         "suppliers": load_suppliers(session),
         "customers": load_customers(session),
         "rules": load_rules(session, overwrite=overwrite_rules),
     }
+    if prune:
+        out["pruned"] = sum(prune_to_seed(session).values())
+    return out
 
 
 def read_seed_emails(path: Path = SEED_DIR / "emails.json") -> list[dict[str, Any]]:

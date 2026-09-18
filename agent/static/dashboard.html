@@ -78,8 +78,8 @@
   </div>
 
   <div class="row two-eq">
-    <section class="card"><h2>Suppliers this run</h2><div style="overflow:auto"><table><thead><tr><th>Supplier</th><th>Invoices</th><th>Total</th><th>Held</th></tr></thead><tbody id="sup"></tbody></table></div></section>
-    <section class="card"><h2>Customers with disputes</h2><div style="overflow:auto"><table><thead><tr><th>Customer</th><th>Disputes</th><th>Requested</th><th>Held</th></tr></thead><tbody id="cus"></tbody></table></div></section>
+    <section class="card"><h2>Who is billing us <span class="n">suppliers · this run</span></h2><p class="muted" style="margin:0;padding:.5rem .9rem 0;font-size:.8rem">Every supplier that sent an invoice, how many, the money they are asking for, and how many of those invoices are waiting for a person.</p><div style="overflow:auto"><table><thead><tr><th>Supplier</th><th>Invoices sent</th><th>Amount billed</th><th>Waiting for you</th></tr></thead><tbody id="sup"></tbody></table></div></section>
+    <section class="card"><h2>Who is complaining <span class="n">customers · this run</span></h2><p class="muted" style="margin:0;padding:.5rem .9rem 0;font-size:.8rem">Every customer that raised a complaint or dispute, how many times, the refund or credit they asked for, and how many are waiting for a person.</p><div style="overflow:auto"><table><thead><tr><th>Customer</th><th>Complaints</th><th>Refund asked</th><th>Waiting for you</th></tr></thead><tbody id="cus"></tbody></table></div></section>
   </div>
 </main>
 <footer class="muted" style="padding:0 1.2rem 1.5rem;font-size:.78rem">Seeded, fictional data in demo mode — no real company, customer, invoice or person. <a href="/inside">How it works →</a></footer>
@@ -112,7 +112,6 @@ async function load() {
     ['Handled by agent', t.auto_executed, 'no human touch', 'ok'],
     ['Waiting for you', t.held, t.held ? 'open the inbox to review' : 'nothing held', 'held'],
     ['Failed', t.failed, t.failed ? 'retry from the inbox' : 'all actions ok', t.failed ? 'failed' : ''],
-    ['Time saved', `${Math.max(0, t.manual_minutes - Math.round(t.agent_seconds / 60))} min`, `agent ${t.agent_seconds}s vs ~${t.manual_minutes} min by hand`, ''],
     ['AI cost today', '$' + t.cost_usd.toFixed(3), `run total $${d.run.cost_usd.toFixed(3)}`, ''],
   ];
   $('#kpis').innerHTML = k.map(([l, v, s, c]) => `<div class="kpi ${c}"><small>${l}</small><b>${v}</b><div class="sub">${s}</div></div>`).join('');
@@ -122,8 +121,8 @@ async function load() {
   $('#attN').textContent = d.attention_total + ' open';
   $('#attention').innerHTML = d.attention.length ? d.attention.map(a => `<li><span class="chip c-${a.status}">${a.status}</span><div class="t"><b><a href="/inbox#doc-${a.document_id}">${esc(a.subject)}</a></b><span>${esc(a.party || '—')}${a.amount ? ' · ' + money(a.amount) : ''} · ${esc(a.reason)}</span></div><a class="btn small" href="/inbox#doc-${a.document_id}">Review</a></li>`).join('') : '<li class="empty">Nothing needs a person right now.</li>';
   $('#feed').innerHTML = d.feed.length ? d.feed.map(f => `<li class="k-${f.kind}"><span class="ic">${f.icon}</span><div class="t"><span style="color:var(--ink)"><a href="/inbox#doc-${f.document_id}" style="color:inherit;text-decoration:none">${esc(f.text)}</a></span></div><time>${new Date(f.at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</time></li>`).join('') : '<li class="empty">No activity yet.</li>';
-  $('#sup').innerHTML = d.top_suppliers.map(s => `<tr><td>${esc(s.name)}</td><td class="mono">${s.invoices}</td><td class="mono">${money(s.total)}</td><td class="mono">${s.held || ''}</td></tr>`).join('') || '<tr><td colspan="4" class="muted">—</td></tr>';
-  $('#cus').innerHTML = d.top_customers.map(c => `<tr><td>${esc(c.name)}</td><td class="mono">${c.disputes}</td><td class="mono">${money(c.requested)}</td><td class="mono">${c.held || ''}</td></tr>`).join('') || '<tr><td colspan="4" class="muted">—</td></tr>';
+  $('#sup').innerHTML = d.top_suppliers.map(s => `<tr><td>${esc(s.name)}</td><td class="mono">${s.invoices}</td><td class="mono">${money(s.total)}</td><td>${s.held ? `<span class="chip c-held">${s.held} held</span>` : '<span class="muted">—</span>'}</td></tr>`).join('') || '<tr><td colspan="4" class="muted">No invoices yet.</td></tr>';
+  $('#cus').innerHTML = d.top_customers.map(c => `<tr><td>${esc(c.name)}</td><td class="mono">${c.disputes}</td><td class="mono">${c.requested ? money(c.requested) : '<span class="muted">no money asked</span>'}</td><td>${c.held ? `<span class="chip c-held">${c.held} held</span>` : '<span class="muted">—</span>'}</td></tr>`).join('') || '<tr><td colspan="4" class="muted">No complaints yet.</td></tr>';
 }
 
 function renderChart(days) {

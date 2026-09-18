@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ops Agent — suppliers & customers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/app.css">
+<style>
+  main{max-width:1100px;margin:0 auto;padding:1rem 1.2rem 3rem;display:grid;gap:1rem}
+  .tabs{display:flex;gap:.4rem;align-items:center;flex-wrap:wrap}
+  .tabs button{font:inherit;font-weight:700;border:1px solid var(--line);background:#fff;border-radius:999px;padding:.35rem .9rem;cursor:pointer}
+  .tabs button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .tabs .sp{margin-left:auto;display:flex;gap:.4rem;flex-wrap:wrap}
+  .pat{display:inline-block;font-family:var(--mono);font-size:.74rem;background:var(--greybg);border-radius:4px;padding:.05rem .35rem;margin:.1rem .2rem .1rem 0}
+  tr.click{cursor:pointer}tr.click:hover{background:#fafbfc}
+  .form{padding:.9rem;display:grid;grid-template-columns:1fr 1fr;gap:.6rem .9rem}
+  .form label{font-size:.8rem;font-weight:700;display:block}
+  .form label small{display:block;color:var(--muted);font-weight:500;font-size:.72rem}
+  .form input{width:100%;font:inherit;font-family:var(--mono);font-size:.82rem;border:1px solid var(--line);border-radius:8px;padding:.5rem .6rem;margin-top:.2rem}
+  .form .full{grid-column:1/-1}
+  .form .foot{grid-column:1/-1;display:flex;gap:.5rem;align-items:center;border-top:1px solid var(--line);padding-top:.6rem}
+  @media (max-width:700px){.form{grid-template-columns:1fr}}
+  .help{padding:.7rem .9rem;font-size:.84rem;color:var(--muted);border-bottom:1px solid var(--line)}
+  .result{font-size:.8rem;font-family:var(--mono)}.result.ok{color:var(--ok)}.result.bad{color:var(--bad)}
+</style>
+</head>
+<body>
+<main>
+  <div><h1 style="margin:0;font-size:1.25rem;font-weight:800">Suppliers &amp; customers</h1><p class="muted" style="margin:.2rem 0 0;font-size:.86rem">The agent only acts on mail it can attribute. Anyone not listed here is held as "no match" — add them once and they are recognised from then on.</p></div>
+
+  <div class="tabs">
+    <button data-kind="supplier" class="on">Suppliers <span class="mono" id="nSup"></span></button>
+    <button data-kind="customer">Customers <span class="mono" id="nCus"></span></button>
+    <div class="sp">
+      <button class="btn small" id="importBtn">Import from QuickBooks / HubSpot</button>
+      <button class="btn small primary" id="newBtn">+ Add</button>
+    </div>
+  </div>
+  <span class="result" id="importResult"></span>
+
+  <section class="card" id="formCard" hidden>
+    <h2 id="formTitle">Add supplier</h2>
+    <div class="help">Identifiers are how the agent recognises this party in an email: the sender's <b>email domain</b> (e.g. <code>acmesupplies.example</code>) and/or the <b>reference prefix</b> on their documents (e.g. <code>ACME-</code> for invoice numbers like ACME-2031). Names alone are never trusted.</div>
+    <form class="form" id="form">
+      <input type="hidden" id="f-id">
+      <label>Name<input id="f-name" required placeholder="Acme Supplies Ltd"></label>
+      <label>Identifiers<small>comma separated · domain and/or PREFIX-</small><input id="f-pat" required placeholder="acmesupplies.example, ACME-"></label>
+      <label class="k-supplier">Expected invoice amount (PO)<small>optional · invoices more than ±5% away are held</small><input id="f-po" placeholder="1240.00"></label>
+      <label class="k-supplier">QuickBooks vendor id<small>optional · filled automatically on first bill</small><input id="f-qbo"></label>
+      <label class="k-customer">Contact email<small>optional</small><input id="f-email" placeholder="facilities@customer.example"></label>
+      <label class="k-customer">HubSpot company id<small>optional · filled automatically on first ticket</small><input id="f-hs"></label>
+      <div class="foot"><button class="btn primary" type="submit">Save</button><button class="btn" type="button" id="cancelBtn">Cancel</button><button class="btn" type="button" id="deleteBtn" style="margin-left:auto;color:var(--bad)" hidden>Delete</button><span class="result" id="formResult"></span></div>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2 id="listTitle">Suppliers <span class="n" id="listN"></span></h2>
+    <div style="overflow:auto"><table><thead id="thead"></thead><tbody id="rows"></tbody></table></div>
+  </section>
+</main>
+
+<script src="/static/nav.js" data-page="directory"></script>
+<script>
+const $ = s => document.querySelector(s);
+let kind = 'supplier', items = [];
+
+async function load() {
+  const [st, r] = await Promise.all([api('/status'), api('/api/parties?kind=' + kind)]);
+  renderNavStatus(st); items = r.items;
+  $('#listTitle').firstChild.textContent = kind === 'supplier' ? 'Suppliers ' : 'Customers ';
+  $('#listN').textContent = items.length + ' on file';
+  $('#nSup').textContent = kind === 'supplier' ? `(${items.length})` : $('#nSup').textContent;
+  $('#nCus').textContent = kind === 'customer' ? `(${items.length})` : $('#nCus').textContent;
+  $('#thead').innerHTML = kind === 'supplier'
+    ? '<tr><th>Supplier</th><th>Identifiers</th><th>Expected amount</th><th>QuickBooks</th><th>Documents</th><th>Held</th></tr>'
+    : '<tr><th>Customer</th><th>Identifiers</th><th>Contact</th><th>HubSpot</th><th>Documents</th><th>Held</th></tr>';
+  $('#rows').innerHTML = items.map(p => `<tr class="click" data-id="${p.id}">
+    <td><b>${esc(p.name)}</b></td>
+    <td>${p.identifier_patterns.map(x => `<span class="pat">${esc(x)}</span>`).join('')}</td>
+    ${kind === 'supplier' ? `<td class="mono">${p.po_amount != null ? money(p.po_amount) : '<span class="muted">—</span>'}</td><td class="mono">${p.qbo_vendor_id ? esc(p.qbo_vendor_id) : '<span class="muted">not linked</span>'}</td>`
+                          : `<td class="mono">${esc(p.contact_email || '—')}</td><td class="mono">${p.hubspot_company_id ? esc(p.hubspot_company_id) : '<span class="muted">not linked</span>'}</td>`}
+    <td class="mono">${p.documents}</td><td>${p.held ? `<span class="chip c-held">${p.held}</span>` : '<span class="muted">—</span>'}</td></tr>`).join('') || `<tr><td colspan="6" class="muted">Nothing on file yet — press + Add or import.</td></tr>`;
+}
+
+document.querySelectorAll('.tabs [data-kind]').forEach(b => b.addEventListener('click', () => { document.querySelectorAll('.tabs [data-kind]').forEach(x => x.classList.remove('on')); b.classList.add('on'); kind = b.dataset.kind; hideForm(); load(); }));
+
+function showForm(p) {
+  $('#formCard').hidden = false;
+  document.querySelectorAll('.k-supplier').forEach(el => el.style.display = kind === 'supplier' ? '' : 'none');
+  document.querySelectorAll('.k-customer').forEach(el => el.style.display = kind === 'customer' ? '' : 'none');
+  $('#formTitle').textContent = (p ? 'Edit ' : 'Add ') + kind;
+  $('#f-id').value = p ? p.id : ''; $('#f-name').value = p ? p.name : ''; $('#f-pat').value = p ? p.identifier_patterns.join(', ') : '';
+  $('#f-po').value = p && p.po_amount != null ? p.po_amount : ''; $('#f-qbo').value = p ? (p.qbo_vendor_id || '') : '';
+  $('#f-email').value = p ? (p.contact_email || '') : ''; $('#f-hs').value = p ? (p.hubspot_company_id || '') : '';
+  $('#deleteBtn').hidden = !p; $('#formResult').textContent = ''; $('#f-name').focus();
+  $('#formCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function hideForm() { $('#formCard').hidden = true; }
+$('#newBtn').addEventListener('click', () => showForm(null));
+$('#cancelBtn').addEventListener('click', hideForm);
+$('#rows').addEventListener('click', e => { const tr = e.target.closest('tr[data-id]'); if (tr) showForm(items.find(x => x.id === +tr.dataset.id)); });
+
+$('#form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const id = $('#f-id').value, body = { name: $('#f-name').value, identifier_patterns: $('#f-pat').value };
+  if (kind === 'supplier') { body.po_amount = $('#f-po').value || null; body.qbo_vendor_id = $('#f-qbo').value || null; }
+  else { body.contact_email = $('#f-email').value || null; body.hubspot_company_id = $('#f-hs').value || null; }
+  const r = $('#formResult'); r.className = 'result';
+  try { await api(id ? `/api/parties/${kind}/${id}` : `/api/parties/${kind}`, { method: id ? 'PUT' : 'POST', body: JSON.stringify(body) }); toast('saved'); hideForm(); await load(); }
+  catch (err) { r.textContent = err.message; r.classList.add('bad'); }
+});
+$('#deleteBtn').addEventListener('click', async () => {
+  const id = $('#f-id').value; if (!id || !confirm('Delete this entry? Documents already attributed keep their history.')) return;
+  try { await api(`/api/parties/${kind}/${id}`, { method: 'DELETE' }); toast('deleted'); hideForm(); await load(); } catch (err) { toast(err.message); }
+});
+$('#importBtn').addEventListener('click', async () => {
+  const sys = kind === 'supplier' ? 'qbo' : 'hubspot', r = $('#importResult'); r.className = 'result'; r.textContent = 'importing…';
+  try { const res = await api('/api/parties/import/' + sys, { method: 'POST' }); r.textContent = `✓ ${sys}: ${res.created} added, ${res.updated} updated`; r.classList.add('ok'); await load(); }
+  catch (err) { r.textContent = '✗ ' + err.message; r.classList.add('bad'); }
+});
+load().catch(e => toast(e.message));
+</script>
+</body>
+</html>

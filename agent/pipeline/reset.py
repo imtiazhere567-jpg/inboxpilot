@@ -52,7 +52,7 @@ def reset_demo(mode: str = "inject", delay_s: float = 1.2, run_tag: str | None =
         reset_for_tests(get_engine())
         invalidate_cache()
         with session_scope() as s:
-            load_all(s)  # master data stays; make sure it is present on a fresh DB
+            load_all(s, prune=True)  # master data back to the seed CSVs (parties added mid-run are removed)
             rules = load_rules(s, force=True)
             run = Run(mode="shadow" if rules.shadow_mode else "live")
             s.add(run)

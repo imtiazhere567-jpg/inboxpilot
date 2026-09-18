@@ -146,7 +146,7 @@ function renderHeader() {
   const executed = (c.executed||0), auto = executed + (c.auto_approved||0), held = (c.held||0), failed=(c.failed||0), ignored=(c.ignore||0);
   $('#tiles').innerHTML = [
     ['emails', s.emails], ['auto', auto], ['held', held], ['failed', failed], ['ignored', ignored],
-    ['agent time', s.agent_seconds + 's'], ['manual est.', s.estimated_manual_minutes + ' min'], ['cost this run', '$' + (s.cost_usd||0).toFixed(3)],
+    ['agent time', s.agent_seconds + 's'], ['cost this run', '$' + (s.cost_usd||0).toFixed(3)],
   ].map(([k,v]) => `<div class="tile"><b>${v ?? 0}</b><small>${k}</small></div>`).join('');
   $('#shadow').checked = !!s.shadow_mode;
   $('#outage').value = s.simulate_outage || 'none';
@@ -213,6 +213,7 @@ async function loadReview(id, quiet) {
     ${it.draft_reply ? `<div class="box"><h4>Draft reply — held with the ticket, never auto-sent</h4><pre>${esc(it.draft_reply)}</pre></div>` : ''}
     ${it.actions.length ? `<div class="box"><h4>Downstream actions</h4>${it.actions.map(a => `<div class="actrow">${chip(a.status==='ok'?'executed':'failed')} <b>${a.system}</b> ${a.external_id ? esc(a.external_id) : ''} ${a.result && a.result.url ? `<a href="${esc(a.result.url)}" target="_blank" rel="noopener">open ↗</a>` : ''} ${a.result && a.result.simulated ? '<span class="chip sim">simulated</span>' : ''} ${a.error ? `<span style="color:#b00020">${esc(a.error)}</span>` : ''}</div>`).join('')}</div>` : ''}
     ${(canDecide || canRetry) ? `<textarea id="note" placeholder="${canRetry ? 'Optional note' : 'Required: one line on why (recorded in the ledger)'}"></textarea>` : ''}
+    ${/^no (supplier|customer) match/.test(it.reason || '') ? `<div class="box" id="addParty"><h4>Not on file</h4><div class="muted" style="margin-bottom:.4rem">This sender is not in the directory. Add them once and this item is processed again automatically.</div><button class="btn small primary" onclick="suggestParty(${it.document_id})">Add as ${/customer/.test(it.reason) ? 'customer' : 'supplier'} →</button></div>` : ''}
     <div class="actions">
       ${canDecide ? `<button class="btn primary" onclick="decide(${it.document_id},'approve')">Approve → execute</button>` : ''}
       ${canReject ? `<button class="btn" onclick="decide(${it.document_id},'reject')">Reject</button>` : ''}
@@ -229,6 +230,23 @@ function highlight(text, ex) {
     for (const a of alt) { const re = new RegExp(a.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), 'g'); text = text.replace(re, m => `<mark>${m}</mark>`); }
   }
   return text;
+}
+
+async function suggestParty(id) {
+  const box = document.getElementById('addParty');
+  let sg; try { sg = await api('/api/parties/suggest/' + id); } catch (e) { toast(e.message); return; }
+  box.innerHTML = `<h4>Add ${sg.kind}</h4>
+    <div class="muted" style="margin-bottom:.4rem">${esc(sg.why)} — check the identifiers: the email domain and/or the reference prefix the agent should recognise next time.</div>
+    <label style="display:block;font-size:.78rem;margin-top:.3rem">Name<input id="p-name" style="width:100%;font:inherit;border:1px solid var(--line);border-radius:6px;padding:.4rem" value="${esc(sg.name)}"></label>
+    <label style="display:block;font-size:.78rem;margin-top:.3rem">Identifiers (comma separated)<input id="p-pat" style="width:100%;font:inherit;font-family:var(--mono);border:1px solid var(--line);border-radius:6px;padding:.4rem" value="${esc(sg.identifier_patterns.join(', '))}"></label>
+    ${sg.kind === 'supplier' ? `<label style="display:block;font-size:.78rem;margin-top:.3rem">Expected invoice amount / PO (optional, used for the ±5% check)<input id="p-po" style="width:100%;font:inherit;font-family:var(--mono);border:1px solid var(--line);border-radius:6px;padding:.4rem" value="${sg.po_amount ?? ''}"></label>` : ''}
+    <div style="display:flex;gap:.5rem;margin-top:.6rem"><button class="btn small primary" onclick="createPartyFromDoc(${id},'${sg.kind}')">Save &amp; process again</button><button class="btn small" onclick="loadReview(${id})">Cancel</button></div>`;
+}
+async function createPartyFromDoc(id, kind) {
+  const body = { name: document.getElementById('p-name').value, identifier_patterns: document.getElementById('p-pat').value };
+  if (kind === 'supplier') body.po_amount = document.getElementById('p-po').value || null;
+  try { const r = await api(`/api/parties/from_document/${id}?kind=${kind}`, { method: 'POST', body: JSON.stringify(body) }); toast(`added · now ${r.status}`); await load(); }
+  catch (e) { toast(e.message); }
 }
 
 async function decide(id, action) {
