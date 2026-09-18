@@ -11,8 +11,11 @@ log = logging.getLogger("ops_agent.sheets")
 def _worksheet():
     import gspread
 
+    import json
+
     s = get_settings()
-    gc = gspread.service_account(filename=s.google_service_account_json)
+    cred = s.google_service_account_json.strip()
+    gc = gspread.service_account_from_dict(json.loads(cred)) if cred.startswith("{") else gspread.service_account(filename=cred)
     return gc.open_by_key(s.rules_sheet_id).worksheet(s.rules_sheet_tab)
 
 

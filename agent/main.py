@@ -1,7 +1,12 @@
 """Ops Agent — FastAPI entry point.
 
-  GET  /                        review queue page
+  GET  /                        dashboard (today, 7 days, attention, activity, ask the agent)
+  GET  /inbox                   review queue page
+  GET  /settings                connect Gmail / Slack / HubSpot / QuickBooks / Anthropic from the browser
   GET  /inside                  under-the-hood page (public)
+  GET  /dashboard?tz=MIN        dashboard data (tz = browser offset in minutes)
+  POST /ask {question,history}  ask the agent about the ledger
+  GET  /api/settings            masked settings · POST saves · POST /api/settings/test/{system}
   GET  /health                  liveness + which integrations are configured (public)
   GET  /status                  run mode, counts, cost, reset countdown, rules
   GET  /queue                   every document in the current run
@@ -55,6 +60,13 @@ async def lifespan(app: FastAPI):
     settings = get_settings()
     logging.basicConfig(level=settings.log_level, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     app.state.scheduler_running = False
+    try:
+        from agent.settings_store import apply_overrides
+
+        with session_scope() as s:
+            apply_overrides(s)
+    except Exception as exc:  # noqa: BLE001 — database may be down; /health will say so
+        log.warning("could not load dashboard settings: %s", exc)
     if settings.scheduler_enabled and settings.app_env != "test":
         from agent.scheduler import start_scheduler
 
@@ -130,7 +142,17 @@ def rate_limited(request: Request) -> None:
 
 @app.get("/", include_in_schema=False)
 def index() -> FileResponse:
+    return FileResponse(STATIC_DIR / "dashboard.html")
+
+
+@app.get("/inbox", include_in_schema=False)
+def inbox_page() -> FileResponse:
     return FileResponse(STATIC_DIR / "index.html")
+
+
+@app.get("/settings", include_in_schema=False)
+def settings_page() -> FileResponse:
+    return FileResponse(STATIC_DIR / "settings.html")
 
 
 @app.get("/inside", include_in_schema=False)
@@ -294,6 +316,88 @@ def retry(document_id: int, request: Request, _: None = Depends(rate_limited)):
     return result
 
 
+# --- dashboard & ask -------------------------------------------------------------------------------------------
+
+@app.get("/dashboard")
+def get_dashboard(tz: int = 0):
+    from agent.dashboard import dashboard
+
+    with session_scope() as s:
+        touch_interaction(s)
+        return dashboard(s, tz_offset_minutes=tz)
+
+
+class AskBody(BaseModel):
+    question: str
+    history: list[dict[str, str]] = []
+
+
+@app.post("/ask")
+def ask(body: AskBody, request: Request, _: None = Depends(rate_limited)):
+    from agent.dashboard import ledger_context_for_ai
+    from agent.llm import get_llm
+
+    q = body.question.strip()
+    if not q or len(q) > 600:
+        raise HTTPException(status_code=422, detail="ask a question (max 600 characters)")
+    with session_scope() as s:
+        touch_interaction(s)
+        ledger = ledger_context_for_ai(s)
+    llm = get_llm()
+    try:
+        answer, call = llm.ask(q, ledger, [h for h in body.history if h.get("role") in ("user", "assistant")][-6:])
+    except Exception as exc:  # noqa: BLE001 — show the failure, never a 500 on the page
+        log.warning("ask failed: %s", exc)
+        raise HTTPException(status_code=502, detail=f"model call failed: {type(exc).__name__}: {str(exc)[:200]}")
+    return {"answer": answer, "model": call.model, "tokens_in": call.tokens_in, "tokens_out": call.tokens_out,
+            "cost_usd": float(call.cost), "duration_ms": call.duration_ms}
+
+
+# --- settings ----------------------------------------------------------------------------------------------------
+
+@app.get("/api/settings")
+def api_settings_get():
+    from agent.settings_store import masked_view
+
+    with session_scope() as s:
+        return masked_view(s)
+
+
+class SettingsBody(BaseModel):
+    values: dict[str, str]
+
+
+@app.post("/api/settings")
+def api_settings_save(body: SettingsBody, request: Request, _: None = Depends(rate_limited)):
+    from agent.pipeline.actions import reset_clients
+    from agent.rules import invalidate_cache
+    from agent.settings_store import masked_view, save_settings
+
+    try:
+        with session_scope() as s:
+            changed = save_settings(s, body.values)
+            view = masked_view(s)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    reset_clients()
+    invalidate_cache()
+    if getattr(app.state, "scheduler_running", False):
+        from agent.scheduler import ensure_jobs
+
+        ensure_jobs(app.state.scheduler)
+    events.bump("settings saved: " + ", ".join(changed))
+    return {"changed": changed, **view}
+
+
+@app.post("/api/settings/test/{system}")
+def api_settings_test(system: Literal["anthropic", "gmail", "slack", "hubspot", "qbo", "rules_sheet"], request: Request,
+                      _: None = Depends(rate_limited)):
+    from agent.settings_store import test_connection
+
+    ok, message = test_connection(system)
+    return {"system": system, "ok": ok, "message": message}
+
+
 # --- controls ---------------------------------------------------------------------------------------------------
 
 class ShadowBody(BaseModel):
@@ -340,6 +444,8 @@ def reset(request: Request, mode: Literal["inject", "gmail", "auto"] = "auto", _
 
     if not (_has_reset_token(request) or _is_logged_in(request)):
         raise HTTPException(status_code=401, detail="reset token or demo login required")
+    if get_settings().app_mode == "live":
+        raise HTTPException(status_code=409, detail="live mode: reset is disabled (switch to demo mode in Settings)")
     if mode == "auto":
         mode = "gmail" if get_settings().integrations_configured["gmail"] else "inject"
     return start_reset_in_background(mode=mode, delay_s=get_settings().seed_delay_seconds)

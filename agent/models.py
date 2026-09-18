@@ -137,6 +137,13 @@ class Rule(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
 
+class AppSetting(Base):
+    __tablename__ = "app_settings"
+    key: Mapped[str] = mapped_column(Text, primary_key=True)
+    value_enc: Mapped[str] = mapped_column(Text)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 class AppState(Base):
     __tablename__ = "app_state"
     id: Mapped[int] = mapped_column(primary_key=True, default=1)

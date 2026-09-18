@@ -92,7 +92,18 @@ def to_inbound(seed: dict[str, Any], run_tag: str = "") -> "InboundEmail":
     """Turn a seed email dict into an InboundEmail. run_tag makes the message id unique per demo run."""
     from agent.pipeline.intake import InboundEmail
 
+    from datetime import datetime, timedelta, timezone
+
     mid = seed["message_id"] + (f"-{run_tag}" if run_tag else "")
+    # Spread arrivals over the last three days (10 per day, 08:00-17:30) so the dashboard's "today" and
+    # "last 7 days" views look like a real inbox rather than 30 emails in one minute.
+    n = seed["seed_no"]
+    days_ago = (30 - n) // 10
+    slot = (n - 1) % 10
+    base = datetime.now(timezone.utc).replace(hour=8, minute=0, second=0, microsecond=0) - timedelta(days=days_ago)
+    received = base + timedelta(minutes=57 * slot + (n * 7) % 23)
+    if received > datetime.now(timezone.utc):
+        received = datetime.now(timezone.utc) - timedelta(minutes=(10 - slot) * 3)
     return InboundEmail(
         message_id=mid,
         from_addr=seed["from_addr"],
@@ -100,4 +111,5 @@ def to_inbound(seed: dict[str, Any], run_tag: str = "") -> "InboundEmail":
         body_text=seed["body"],
         attachments=[(fn, attachment_bytes(fn)) for fn in seed["attachments"]],
         seed_no=seed["seed_no"],
+        received_at=received,
     )

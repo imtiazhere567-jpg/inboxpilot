@@ -67,6 +67,8 @@ class Settings(BaseSettings):
     auto_seed_on_start: bool = Field(default=True, description="Seed the demo at startup when the database is empty")
     seed_delay_seconds: float = Field(default=1.2, description="Pause between seed emails so the page shows them arriving")
     approve_rate_limit_per_minute: int = 30
+    app_mode: Literal["demo", "live"] = Field(default="demo", description="demo = seeded inbox + auto reset; live = your real inbox, no reset")
+    settings_secret: str = Field(default="", description="Encrypts dashboard-saved settings; falls back to RESET_TOKEN")
 
     @property
     def integrations_configured(self) -> dict[str, bool]:

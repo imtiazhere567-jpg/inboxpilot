@@ -176,6 +176,7 @@ def status(session: Session) -> dict[str, Any]:
         "run_id": run.id if run else None,
         "run_started_at": run.started_at.isoformat() if run else None,
         "mode": "shadow" if rules.shadow_mode else "live",
+        "app_mode": settings.app_mode,
         "shadow_mode": rules.shadow_mode,
         "simulate_outage": rules.simulate_outage,
         "resetting": bool(flags.get("resetting")),

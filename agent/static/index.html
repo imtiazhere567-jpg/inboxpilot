@@ -3,9 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Ops Agent — review queue</title>
+<title>Ops Agent — inbox & review</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/app.css">
 <style>
   :root{--blue:#1F4FD8;--orange:#E8620C;--ink:#14161a;--muted:#6b7280;--line:#e5e7eb;--bg:#f6f7f9;--card:#fff;
         --ok:#0a7a2f;--okbg:#e6f4ea;--hold:#8a5a00;--holdbg:#fff4d6;--bad:#b00020;--badbg:#fde8ea;--grey:#4b5563;--greybg:#eef0f3;
@@ -13,7 +14,7 @@
   *{box-sizing:border-box}
   body{margin:0;font-family:Manrope,system-ui,sans-serif;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.45}
   a{color:var(--blue)}
-  header{background:var(--card);border-bottom:1px solid var(--line);padding:.8rem 1.2rem;display:flex;flex-wrap:wrap;gap:.8rem 1.4rem;align-items:center;position:sticky;top:0;z-index:5}
+  header{background:var(--card);border-bottom:1px solid var(--line);padding:.7rem 1.2rem;display:flex;flex-wrap:wrap;gap:.8rem 1.4rem;align-items:center;position:sticky;top:48px;z-index:5}
   header h1{margin:0;font-size:1.05rem;font-weight:800;letter-spacing:-.01em}
   header h1 span{color:var(--muted);font-weight:600}
   .tiles{display:flex;gap:.6rem;flex-wrap:wrap}
@@ -33,7 +34,7 @@
   main{display:grid;grid-template-columns:minmax(300px,1.05fr) minmax(340px,1.35fr) minmax(320px,1.2fr);gap:1rem;padding:1rem 1.2rem;align-items:start}
   @media (max-width:1100px){main{grid-template-columns:1fr 1fr}.col-ledger{grid-column:1/-1}}
   @media (max-width:720px){main{grid-template-columns:1fr}}
-  section{background:var(--card);border:1px solid var(--line);border-radius:12px;min-height:200px;display:flex;flex-direction:column;max-height:calc(100vh - 140px)}
+  section{background:var(--card);border:1px solid var(--line);border-radius:12px;min-height:200px;display:flex;flex-direction:column;max-height:calc(100vh - 190px)}
   section h2{margin:0;padding:.7rem .9rem;border-bottom:1px solid var(--line);font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);display:flex;align-items:center;gap:.5rem}
   section h2 .n{margin-left:auto;font-family:var(--mono);font-weight:500;text-transform:none;letter-spacing:0}
   .scroll{overflow:auto;flex:1}
@@ -90,14 +91,12 @@
 </head>
 <body>
 <header>
-  <h1>Ops Agent <span>· invoices &amp; disputes</span></h1>
   <div class="tiles" id="tiles"></div>
   <div class="controls">
     <label><input type="checkbox" id="shadow"> Shadow mode</label>
     <label>Outage <select id="outage"><option value="none">none</option><option value="qbo">QuickBooks</option><option value="hubspot">HubSpot</option><option value="slack">Slack</option></select></label>
     <span class="countdown" id="countdown">—</span>
     <button class="btn warn" id="resetBtn">Reset demo</button>
-    <a class="btn" href="/inside" style="text-decoration:none">Under the hood</a>
   </div>
 </header>
 <div class="banner" id="banner"></div>
@@ -126,23 +125,14 @@
 </footer>
 <div class="toast" id="toast"></div>
 
+<script src="/static/nav.js" data-page="inbox"></script>
 <script>
 const $ = s => document.querySelector(s);
 const state = { items: [], status: null, sel: null, filter: 'all', secs: null };
 const fmtMoney = v => v == null ? '' : '£' + Number(v).toLocaleString('en-GB', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 const chipLabel = s => ({auto_approved:'Auto', executed:'Executed', held:'Held', approved:'Approved', rejected:'Rejected', failed:'Failed', ignore:'Ignored', shadow:'Shadow', received:'Received'})[s] || s;
 const chip = (s, extra='') => `<span class="chip c-${s} ${extra}">${chipLabel(s)}</span>`;
-const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const typeLabel = t => ({supplier_invoice:'invoice', customer_dispute:'dispute', remittance:'remittance', credit_note:'credit note', ignore:'ignore', unknown:'unknown'})[t] || (t || '—');
-function toast(msg, ms=2200){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), ms); }
-
-async function api(path, opts={}) {
-  const r = await fetch(path, {headers:{'content-type':'application/json'}, ...opts});
-  if (r.status === 401) { location.href = '/login'; throw new Error('login'); }
-  const j = await r.json().catch(()=>({}));
-  if (!r.ok) throw new Error(j.detail || r.statusText);
-  return j;
-}
 
 async function load() {
   const [st, q] = await Promise.all([api('/status'), api('/queue')]);
@@ -166,7 +156,10 @@ function renderHeader() {
   else if (s.seeding) { b.textContent = `Seeding inbox ${s.seeding.done}/${s.seeding.total} (${s.seeding.mode})…`; b.classList.add('show'); }
   else if (s.shadow_mode) { b.textContent = 'Shadow mode: the agent evaluates everything but executes nothing. Turn it off to post to QuickBooks / HubSpot / Slack.'; b.classList.add('show'); }
   else if (s.last_error) { b.textContent = 'Last error: ' + s.last_error; b.classList.add('show','err'); }
-  $('#resetBtn').disabled = !!(s.resetting || s.seeding);
+  else if (s.llm === 'fake') { b.innerHTML = 'Fake model running (no Anthropic key) — classification and extraction are keyword stand-ins. Add a key in <a href="/settings">Settings</a>.'; b.classList.add('show'); }
+  $('#resetBtn').disabled = !!(s.resetting || s.seeding) || s.app_mode === 'live';
+  $('#resetBtn').title = s.app_mode === 'live' ? 'disabled in live mode' : '';
+  renderNavStatus(s);
 }
 
 function tick() {
@@ -226,7 +219,7 @@ async function loadReview(id, quiet) {
       ${canRetry ? `<button class="btn warn" onclick="retry(${it.document_id})">Retry failed action</button>` : ''}
     </div>
     ${d.notes && d.notes.length ? `<div class="box"><h4>Human notes</h4>${d.notes.map(n => `<div class="actrow"><b>${n.action}</b> ${esc(n.note)} <span style="color:#6b7280">· ${n.by} · ${new Date(n.at).toLocaleTimeString('en-GB')}</span></div>`).join('')}</div>` : ''}
-    <div class="box"><h4>Timeline</h4><ul class="timeline">${it.timeline.map(t => `<li><b>${esc(t.step)}</b><span>${new Date(t.at).toLocaleTimeString('en-GB')}${t.duration_ms != null ? ' · ' + t.duration_ms + ' ms' : ''}${t.model ? ' · ' + t.model : ''}</span></li>`).join('')}</ul></div>`;
+    <div class="box"><h4>Timeline</h4><ul class="timeline">${it.timeline.map(t => `<li><b>${esc(t.step)}${t.model ? (t.model === 'fake' ? ' <span class="chip sim">fake ai</span>' : ' <span class="chip model" style="background:#1e3a8a;color:#fff">claude</span>') : ''}</b><span>${new Date(t.at).toLocaleTimeString('en-GB')}${t.duration_ms != null ? ' · ' + t.duration_ms + ' ms' : ''}${t.model ? ' · ' + t.model : ''}</span></li>`).join('')}</ul></div>`;
 }
 
 function highlight(text, ex) {

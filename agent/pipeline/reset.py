@@ -122,6 +122,8 @@ def start_reset_in_background(mode: str = "inject", delay_s: float = 1.2) -> dic
 def maybe_reset() -> str:
     """Scheduler job (every 5 min). Returns what it did, for logs."""
     settings = get_settings()
+    if settings.app_mode == "live":
+        return "live mode: no reset"
     now = datetime.now(timezone.utc)
     with session_scope() as s:
         state = s.get(AppState, 1)

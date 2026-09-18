@@ -121,3 +121,10 @@ INSERT INTO app_state (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
 
 -- Added in Phase 2: why an attachment could not be read (NULL = readable).
 ALTER TABLE documents ADD COLUMN IF NOT EXISTS read_error TEXT;
+
+-- Dashboard-editable settings (Gmail, Slack, HubSpot, QBO, Anthropic, sheet, mode). Values are Fernet-encrypted.
+CREATE TABLE IF NOT EXISTS app_settings (
+    key         TEXT PRIMARY KEY,
+    value_enc   TEXT NOT NULL,
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
