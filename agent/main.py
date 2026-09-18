@@ -191,8 +191,11 @@ def login(body: LoginBody, request: Request, response: Response):
     s = get_settings()
     rate_limited(request)
     if not s.demo_password or hmac.compare_digest(body.password, s.demo_password):
-        response.set_cookie("ops_demo", _cookie_value(), httponly=True, samesite="lax", max_age=60 * 60 * 24 * 7,
-                            secure=s.app_env == "prod")
+        # prod is always behind HTTPS; samesite=none lets the login work when a host (e.g. Hugging Face Spaces)
+        # embeds the app in an iframe. Dev stays lax so http://localhost works.
+        prod = s.app_env == "prod"
+        response.set_cookie("ops_demo", _cookie_value(), httponly=True, samesite="none" if prod else "lax",
+                            max_age=60 * 60 * 24 * 7, secure=prod)
         return {"ok": True}
     raise HTTPException(status_code=401, detail="wrong password")
 
