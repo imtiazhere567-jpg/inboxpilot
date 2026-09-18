@@ -85,7 +85,7 @@ def execute_actions(session: Session, doc: Document, rules: RuleSet | None = Non
     ex = doc.extracted or {}
     ref = ex.get("invoice_number") or ex.get("order_ref") or (email.subject or "")[:40]
     base_url = get_settings().app_base_url.rstrip("/")
-    review_link = f"{base_url}/documents#doc-{doc.id}"
+    review_link = f"{base_url}/inbox#doc-{doc.id}"
 
     try:
         if doc.status in ("held",):

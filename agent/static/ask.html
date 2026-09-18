@@ -50,8 +50,6 @@
     <aside class="side">
       <section class="card"><div class="head"><span>Recent chats</span><button type="button" class="btn small" id="newChat" style="margin-left:auto">New chat</button></div><div class="body" id="convos" style="gap:4px"></div></section>
       <section class="card"><div class="head"><span>Try asking</span></div><div class="body" id="sugg"></div></section>
-      <section class="card"><div class="head"><span>What it can see</span></div><div class="body"><dl id="scope"></dl><p style="margin-top:6px">The current run's documents, statuses, reasons, amounts, parties, human notes and actions. It cannot see your mailbox or anything outside the ledger.</p></div></section>
-      <section class="card"><div class="head"><span>How it answers</span></div><div class="body"><p id="modelNote"></p></div></section>
     </aside>
   </div>
 </main>
@@ -62,7 +60,7 @@ const $ = s => document.querySelector(s);
 const KEY = 'ops-agent-chats';
 let chats = [], cur = null, refMap = {};
 try { chats = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch (e) { chats = []; }
-const SUGGESTIONS = ['How many invoices came in today and what is their total?', 'What is held and why?', 'Total from Acme this week', 'Which customers asked for refunds?', 'Show me ACME-2099', 'Summary of what happened today'];
+const SUGGESTIONS = ['What came in today?', 'What is waiting for me and why?', 'What has Acme Supplies sent us?', 'Which customers asked for refunds?', 'Show me ACME-2099', 'Find Pinnacle'];
 $('#sugg').innerHTML = SUGGESTIONS.map(s => `<button type="button" class="q">${s}</button>`).join('');
 $('#sugg').addEventListener('click', e => { const b = e.target.closest('button.q'); if (b) { $('#q').value = b.textContent; $('#askForm').requestSubmit(); } });
 
@@ -76,8 +74,8 @@ $('#newChat').addEventListener('click', newChat);
 
 function linkify(text) {
   let out = esc(text);
-  out = out.replace(/\bdoc\s*#(\d+)\b/gi, (m, id) => `<a class="doc" href="/documents#doc-${id}" title="open this document">${m}</a>`);
-  out = out.replace(/\b([A-Z]{2,5}-\d{3,6})\b/g, (m) => refMap[m] ? `<a class="doc" href="/documents#doc-${refMap[m]}" title="open this document">${m}</a>` : m);
+  out = out.replace(/\bdoc\s*#(\d+)\b/gi, (m, id) => `<a class="doc" href="/inbox#doc-${id}" title="open this document">${m}</a>`);
+  out = out.replace(/\b([A-Z]{2,5}-\d{3,6})\b/g, (m) => refMap[m] ? `<a class="doc" href="/inbox#doc-${refMap[m]}" title="open this document">${m}</a>` : m);
   return out;
 }
 function hello() { return `<div class="msg a hello"><b>Ask about the inbox.</b>I answer from the ledger — counts, amounts, what's held and why, a supplier's or customer's history, today's activity. Mention a reference like ACME-2031 or "doc #12" to open a specific document.</div>`; }
@@ -91,13 +89,6 @@ async function load() {
   const [st, q] = await Promise.all([api('/status'), api('/queue')]);
   renderNavStatus(st);
   refMap = {}; q.items.forEach(i => { if (i.ref) refMap[i.ref] = i.document_id; });
-  const c = st.counts || {};
-  $('#scope').innerHTML = `<dt>documents</dt><dd>${st.documents}</dd><dt>emails</dt><dd>${st.emails}</dd><dt>waiting</dt><dd>${c.held || 0}</dd><dt>AI cost</dt><dd>$${(st.cost_usd || 0).toFixed(3)}</dd>`;
-  $('#modelNote').innerHTML = st.presentation
-    ? 'Answers are produced only from the ledger of this inbox — counts, amounts, statuses, reasons and history. Anything outside it is politely declined.'
-    : st.llm === 'fake'
-      ? 'Offline answers — a keyword stand-in is running. Add an Anthropic API key in <a href="/settings">Settings</a> for free-form answers from Claude.'
-      : `<span class="badge model">${esc(st.llm)}</span> answers from a compact view of the ledger (~${st.documents} rows). Questions outside the inbox are declined.`;
   const b = $('#banner'); b.className = 'banner';
   if (st.llm === 'fake' && !st.presentation) { b.innerHTML = 'Running with the <b>fake model</b> — answers are limited to a few question types. Add an Anthropic API key in <a href="/settings">Settings</a>.'; b.classList.add('show', 'warn'); }
   renderHistory();

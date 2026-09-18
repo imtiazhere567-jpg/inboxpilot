@@ -358,13 +358,29 @@ def _fake_ask(question: str, ledger: dict[str, Any]) -> str:
         y = (date.fromisoformat(today) - timedelta(days=1)).isoformat() if today else ""
         subset, scope = [d for d in docs if (d.get("received") or "")[:10] == y], "yesterday"
 
-    party_hits = {d["party"] for d in docs if d.get("party") and d["party"].lower().split()[0] in q}
-    if party_hits:
-        name = sorted(party_hits)[0]
-        rows = [d for d in subset if d.get("party") == name]
+    def party_words(name: str) -> list[str]:
+        stop = {"ltd", "limited", "llp", "plc", "the", "and", "&", "of", "group", "services", "supplies", "office", "care", "medical", "centre", "school", "primary", "motors", "retail", "logistics", "hire", "equipment"}
+        return [w for w in re.findall(r"[a-z]+", name.lower()) if len(w) > 3 and w not in stop]
+
+    names = sorted({d["party"] for d in docs if d.get("party")})
+    hit = None
+    for name in names:
+        if name.lower() in q or any(w in q for w in party_words(name)):
+            hit = name
+            break
+    if hit:
+        rows = [d for d in subset if d.get("party") == hit]
         total = sum(Decimal(str(d["amount"])) for d in rows if d.get("amount"))
-        lines = [f"• doc #{d['doc']} {d.get('ref') or d['file']} — {d['status']} — {money(d.get('amount'))} — {d.get('reason')}" for d in rows]
-        return f"{name}: {len(rows)} document(s) {scope}, total {money(total)}." + ("\n" + "\n".join(lines) if lines else "")
+        kind = "invoice" if any(d["type"] == "supplier_invoice" for d in rows) else "complaint"
+        held = [d for d in rows if d["status"] in ("held", "failed")]
+        lines = [f"• doc #{d['doc']} {d.get('ref') or d['file']} — {d['type'].replace('_', ' ') if d.get('type') else ''} — {money(d.get('amount'))} — {d['status']}: {d.get('reason')}" for d in rows]
+        head = f"{hit}: {len(rows)} document(s) {scope}, total {money(total)}" + (f", {len(held)} waiting for you." if held else ".")
+        if not rows:
+            head = f"{hit} is on file but sent nothing {scope}."
+        return head + ("\n" + "\n".join(lines) if lines else "")
+    m_find = re.search(r"\b(?:find|search|look up|lookup|who is|about)\s+(?:the\s+)?(?:supplier|customer)?\s*([a-z][a-z .&'-]{2,40})\??$", q)
+    if m_find and not any(k in q for k in ("invoice", "complaint", "dispute", "held", "waiting", "refund")):
+        return f"I can't find a supplier or customer called \"{m_find.group(1).strip()}\" in this inbox. Check the spelling, or add them under Suppliers & customers."
     if any(k in q for k in ("held", "attention", "review", "stuck", "pending", "ruk")):
         rows = [d for d in subset if d["status"] in ("held", "failed")]
         if not rows:
@@ -389,14 +405,24 @@ def _fake_ask(question: str, ledger: dict[str, Any]) -> str:
     if any(k in q for k in ("cost", "spend", "kharch", "token")):
         sm = ledger.get("summary", {})
         return f"AI cost this week: ${sm.get('cost_usd', 0)} across {sm.get('documents', 0)} documents."
-    if any(k in q for k in ("how many", "kitn", "count", "total", "summary", "overview", "what happened", "status")):
+    if any(k in q for k in ("how many", "kitn", "count", "total", "summary", "overview", "what happened", "status", "what came", "what arrived", "what is new", "anything new", "update")) or scope != "this week":
         c: dict[str, int] = {}
         t: dict[str, int] = {}
         for d in subset:
             c[d["status"]] = c.get(d["status"], 0) + 1
             t[d["type"] or "?"] = t.get(d["type"] or "?", 0) + 1
-        return (f"{len({d['seed'] for d in subset})} email(s) / {len(subset)} document(s) {scope}. By status: " +
-                ", ".join(f"{k} {v}" for k, v in sorted(c.items())) + ". By type: " + ", ".join(f"{k} {v}" for k, v in sorted(t.items())) + ".")
+        if not subset:
+            return f"Nothing arrived {scope}."
+        held = [d for d in subset if d["status"] in ("held", "failed")]
+        inv = [d for d in subset if d["type"] == "supplier_invoice" and d["status"] not in ("ignore", "rejected")]
+        disp = [d for d in subset if d["type"] == "customer_dispute" and d["status"] not in ("ignore", "rejected")]
+        inv_total = sum(Decimal(str(d["amount"])) for d in inv if d.get("amount"))
+        out = (f"{len({d['seed'] for d in subset})} email(s) {scope}: {len(inv)} invoice(s) totalling {money(inv_total)}, {len(disp)} complaint(s), "
+               f"{sum(1 for d in subset if d['type'] == 'remittance')} payment notice(s). "
+               f"{sum(1 for d in subset if d['status'] == 'executed')} handled by the agent, {len(held)} waiting for you, {c.get('ignore', 0)} ignored.")
+        if held:
+            out += "\nWaiting:\n" + "\n".join(f"• doc #{d['doc']} {d.get('ref') or d['file']} — {d.get('party') or d['from']} — {money(d.get('amount'))} — {d.get('reason')}" for d in held[:8])
+        return out
     inbox_words = ("invoice", "bill", "dispute", "complaint", "refund", "payment", "remittance", "supplier", "customer", "held", "waiting",
                    "approved", "rejected", "ignored", "failed", "document", "email", "inbox", "ledger", "agent", "cost", "today", "week", "amount", "total")
     if not any(w in q for w in inbox_words):

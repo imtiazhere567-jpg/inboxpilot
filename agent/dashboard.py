@@ -37,7 +37,8 @@ def dashboard(session: Session, tz_offset_minutes: int = 0) -> dict[str, Any]:
     today = (now_utc + timedelta(minutes=tz_offset_minutes)).date()
 
     def local_date(dt: datetime):
-        return (dt + timedelta(minutes=tz_offset_minutes)).date()
+        # DB timestamps arrive in the session's zone; normalise to UTC before applying the browser offset
+        return (dt.astimezone(timezone.utc) + timedelta(minutes=tz_offset_minutes)).date()
 
     def block(dd: list[Document], date) -> dict[str, Any]:
         inv = [d for d in dd if d.doc_type == "supplier_invoice" and _is_money_doc(d)]
@@ -74,6 +75,10 @@ def dashboard(session: Session, tz_offset_minutes: int = 0) -> dict[str, Any]:
             "invoices_total": float(sum(_dec((d.extracted or {}).get("total")) for d in dd if d.doc_type == "supplier_invoice" and _is_money_doc(d))),
             "handled_total": float(sum(_dec((d.extracted or {}).get("total")) for d in dd if d.doc_type == "supplier_invoice" and d.status in ("executed", "auto_approved", "approved") and not _human_approved(d))),
             "waiting_total": float(sum(_dec((d.extracted or {}).get("total")) for d in dd if d.doc_type == "supplier_invoice" and (d.status in ("held", "failed") or _human_approved(d)))),
+            "disputes": sum(1 for d in dd if d.doc_type == "customer_dispute" and _is_money_doc(d)),
+            "disputes_handled": sum(1 for d in dd if d.doc_type == "customer_dispute" and d.status in ("executed", "auto_approved", "approved") and not _human_approved(d)),
+            "disputes_waiting": sum(1 for d in dd if d.doc_type == "customer_dispute" and (d.status in ("held", "failed") or _human_approved(d))),
+            "refunds_requested": float(sum(_dec((d.extracted or {}).get("requested_refund_amount")) for d in dd if d.doc_type == "customer_dispute" and _is_money_doc(d))),
         })
 
     sup: dict[str, dict] = {}
@@ -154,7 +159,7 @@ def ledger_context_for_ai(session: Session, limit: int = 150) -> dict[str, Any]:
     for d in session.scalars(_docs_query(session)):
         ex = d.extracted or {}
         rows.append({
-            "doc": d.id, "seed": d.email.seed_no, "received": d.email.received_at.isoformat(timespec="minutes"),
+            "doc": d.id, "seed": d.email.seed_no, "received": d.email.received_at.astimezone(timezone.utc).isoformat(timespec="minutes"),
             "from": d.email.from_addr, "subject": d.email.subject, "file": d.filename, "type": d.doc_type,
             "party": names.get((d.party_kind, d.party_id)) if d.party_id else None, "status": d.status, "reason": d.reason,
             "amount": ex.get("total") or ex.get("requested_refund_amount") or ex.get("amount"),

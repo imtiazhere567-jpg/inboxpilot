@@ -146,9 +146,13 @@ def index() -> FileResponse:
 
 
 @app.get("/inbox", include_in_schema=False)
-def inbox_page(request: Request) -> RedirectResponse:
-    """The review panel lives on the dashboard now; keep old links (/inbox#doc-12) working."""
-    return RedirectResponse("/documents", status_code=307)
+def inbox_page() -> FileResponse:
+    return FileResponse(STATIC_DIR / "inbox.html")
+
+
+@app.get("/documents", include_in_schema=False)
+def documents_redirect() -> RedirectResponse:
+    return RedirectResponse("/inbox", status_code=307)
 
 
 @app.get("/ask", include_in_schema=False)
@@ -156,9 +160,6 @@ def ask_page() -> FileResponse:
     return FileResponse(STATIC_DIR / "ask.html")
 
 
-@app.get("/documents", include_in_schema=False)
-def documents_page() -> FileResponse:
-    return FileResponse(STATIC_DIR / "documents.html")
 
 
 @app.get("/settings", include_in_schema=False)
