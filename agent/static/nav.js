@@ -95,7 +95,12 @@
     }
   };
   window.toast = function (msg, ms) { let t = document.getElementById('toast'); if (!t) { t = document.createElement('div'); t.id = 'toast'; t.className = 'toast'; document.body.appendChild(t); } t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), ms || 2200); };
+  // The server embeds the first data a page needs (window.BOOT) so nothing waits on a second round trip.
+  try { document.cookie = 'ops_tz=' + (-new Date().getTimezoneOffset()) + ';path=/;max-age=31536000;samesite=lax'; } catch (e) {}
   window.api = async function (path, opts) {
+    if (!opts && window.BOOT && Object.prototype.hasOwnProperty.call(window.BOOT, path)) {
+      const v = window.BOOT[path]; delete window.BOOT[path]; return v;
+    }
     const r = await fetch(path, Object.assign({ headers: { 'content-type': 'application/json' } }, opts || {}));
     if (r.status === 401) { location.href = '/login'; throw new Error('login'); }
     const j = await r.json().catch(() => ({}));

@@ -1,4 +1,9 @@
 /* Ops Agent — shared design tokens, sidebar shell and primitives (light, Lintel-style) */
+/* Fonts are served from this origin (latin subsets, ~70 KB total) — no third-party round trip before first paint */
+@font-face{font-family:'Manrope';font-style:normal;font-weight:500 800;font-display:swap;src:url(/static/fonts/Manrope-500-800.woff2) format('woff2')}
+@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:400;font-display:swap;src:url(/static/fonts/IBMPlexMono-400.woff2) format('woff2')}
+@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:500;font-display:swap;src:url(/static/fonts/IBMPlexMono-500.woff2) format('woff2')}
+@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:600;font-display:swap;src:url(/static/fonts/IBMPlexMono-600.woff2) format('woff2')}
 :root{--blue:#1F4FD8;--blue-soft:#C9D4F6;--blue-bg:#E4EAFB;--orange:#E8620C;--ink:#15171A;--text:#3F4650;--muted:#5B6470;--faint:#9AA0A6;
       --line:#ECEDEA;--line-strong:#DDDFDA;--bg:#ECECE8;--panel:#FAFAF8;--card:#FFFFFF;
       --ok:#0A7A2F;--okbg:#E3F3E7;--hold:#7A4B00;--holdbg:#FFF1D6;--holddot:#E8A317;--bad:#B00020;--badbg:#FDE8EA;--grey:#4B5563;--greybg:#EEF0F3;

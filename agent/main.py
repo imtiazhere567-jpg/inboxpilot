@@ -27,13 +27,15 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import hmac
+import json
 import logging
+import mimetypes
 import threading
 import time
 from collections import defaultdict, deque
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Literal
+from typing import Any, Callable, Literal
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse
@@ -90,7 +92,18 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Ops Agent — invoices & disputes", version=__version__, lifespan=lifespan)
-app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+class _CachedStatic(StaticFiles):
+    """Long cache for fonts (content never changes), short for CSS/JS so a deploy shows up within minutes."""
+
+    def file_response(self, *args, **kwargs):  # type: ignore[override]
+        resp = super().file_response(*args, **kwargs)
+        path = str(args[0]) if args else ""
+        resp.headers["cache-control"] = "public, max-age=31536000, immutable" if "fonts" in Path(path).parts else "public, max-age=600"
+        return resp
+
+
+mimetypes.add_type("font/woff2", ".woff2")  # Windows registries often lack it
+app.mount("/static", _CachedStatic(directory=STATIC_DIR), name="static")
 
 
 # --- auth: one shared demo password, cookie carries an HMAC of it ---------------------------------------------
@@ -145,14 +158,40 @@ def rate_limited(request: Request) -> None:
 
 # --- pages ---------------------------------------------------------------------------------------------------
 
+def _page(name: str, request: Request, boot: dict[str, Callable[[], Any]]) -> HTMLResponse:
+    """Serve a static page with the first data it fetches embedded as window.BOOT, so the page renders with data
+    on the first paint instead of after a second round trip. Each entry is computed from the read cache; a failure
+    just leaves that key out and the page fetches it as before."""
+    html = (STATIC_DIR / name).read_text(encoding="utf-8")
+    payload: dict[str, Any] = {}
+    for path, fn in boot.items():
+        try:
+            payload[path] = fn()
+        except Exception as exc:  # noqa: BLE001
+            log.debug("boot %s: %s", path, exc)
+    if payload:
+        blob = json.dumps(payload, default=str, separators=(",", ":")).replace("</", "<\\/")  # never let data close the script tag
+        marker = '<script src="/static/nav.js"'
+        html = html.replace(marker, "<script>window.BOOT=" + blob + "</script>\n" + marker, 1)
+    return HTMLResponse(html, headers={"cache-control": "no-store"})
+
+
+def _viewer_tz(request: Request) -> int:
+    try:
+        return int(request.cookies.get("ops_tz", "0"))
+    except ValueError:
+        return 0
+
+
 @app.get("/", include_in_schema=False)
-def index() -> FileResponse:
-    return FileResponse(STATIC_DIR / "dashboard.html")
+def index(request: Request) -> HTMLResponse:
+    tz = _viewer_tz(request)
+    return _page("dashboard.html", request, {"/status": get_status, f"/dashboard?tz={tz}": lambda: get_dashboard(tz), "/queue": get_queue})
 
 
 @app.get("/inbox", include_in_schema=False)
-def inbox_page() -> FileResponse:
-    return FileResponse(STATIC_DIR / "inbox.html")
+def inbox_page(request: Request) -> HTMLResponse:
+    return _page("inbox.html", request, {"/status": get_status, "/queue": get_queue})
 
 
 @app.get("/documents", include_in_schema=False)
@@ -161,20 +200,19 @@ def documents_redirect() -> RedirectResponse:
 
 
 @app.get("/ask", include_in_schema=False)
-def ask_page() -> FileResponse:
-    return FileResponse(STATIC_DIR / "ask.html")
-
-
+def ask_page(request: Request) -> HTMLResponse:
+    return _page("ask.html", request, {"/status": get_status, "/queue": get_queue})
 
 
 @app.get("/settings", include_in_schema=False)
-def settings_page() -> FileResponse:
-    return FileResponse(STATIC_DIR / "settings.html")
+def settings_page(request: Request) -> HTMLResponse:
+    return _page("settings.html", request, {"/status": get_status})
 
 
 @app.get("/directory", include_in_schema=False)
-def directory_page() -> FileResponse:
-    return FileResponse(STATIC_DIR / "directory.html")
+def directory_page(request: Request) -> HTMLResponse:
+    return _page("directory.html", request, {"/status": get_status, "/api/parties?kind=supplier": lambda: api_parties("supplier"),
+                                             "/api/parties?kind=customer": lambda: api_parties("customer")})
 
 
 @app.get("/inside", include_in_schema=False)
@@ -238,7 +276,7 @@ def _prime_cache() -> None:
     try:
         get_status()
         get_queue()
-        for tz in (0, -60, -300):  # UTC, UK summer time, Pakistan — where the demo is usually opened from
+        for tz in (0, 60, 300):  # UTC, UK summer time, Pakistan — where the demo is usually opened from
             get_dashboard(tz)
         api_parties("supplier")
         api_parties("customer")
