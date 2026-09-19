@@ -30,6 +30,7 @@ import hmac
 import json
 import logging
 import mimetypes
+import re
 import threading
 import time
 from collections import defaultdict, deque
@@ -39,6 +40,7 @@ from typing import Any, Callable, Literal
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
@@ -126,6 +128,9 @@ def _has_reset_token(request: Request) -> bool:
     return bool(s.reset_token) and auth == f"Bearer {s.reset_token}"
 
 
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+
 @app.middleware("http")
 async def auth_gate(request: Request, call_next):
     path = request.url.path
@@ -158,6 +163,22 @@ def rate_limited(request: Request) -> None:
 
 # --- pages ---------------------------------------------------------------------------------------------------
 
+_ASSET_RE = re.compile(r'<link rel="stylesheet" href="/static/(app\.css)">|<script src="/static/(nav\.js|review\.js)"([^>]*)></script>')
+
+
+def _inline_assets(html: str) -> str:
+    """Put the shared CSS and JS into the page itself: one response carries everything the first paint needs.
+    On a link with a 300 ms round trip that removes a whole hop from the critical path."""
+
+    def sub(m: re.Match[str]) -> str:
+        if m.group(1):
+            return "<style>" + (STATIC_DIR / m.group(1)).read_text(encoding="utf-8") + "</style>"
+        src = (STATIC_DIR / m.group(2)).read_text(encoding="utf-8").replace("</script", "<\\/script")
+        return "<script" + (m.group(3) or "") + ">" + src + "</script>"
+
+    return _ASSET_RE.sub(sub, html)
+
+
 def _page(name: str, request: Request, boot: dict[str, Callable[[], Any]]) -> HTMLResponse:
     """Serve a static page with the first data it fetches embedded as window.BOOT, so the page renders with data
     on the first paint instead of after a second round trip. Each entry is computed from the read cache; a failure
@@ -173,7 +194,7 @@ def _page(name: str, request: Request, boot: dict[str, Callable[[], Any]]) -> HT
         blob = json.dumps(payload, default=str, separators=(",", ":")).replace("</", "<\\/")  # never let data close the script tag
         marker = '<script src="/static/nav.js"'
         html = html.replace(marker, "<script>window.BOOT=" + blob + "</script>\n" + marker, 1)
-    return HTMLResponse(html, headers={"cache-control": "no-store"})
+    return HTMLResponse(_inline_assets(html), headers={"cache-control": "no-store"})  # inline after: nav.js mentions the tag in a comment
 
 
 def _viewer_tz(request: Request) -> int:
